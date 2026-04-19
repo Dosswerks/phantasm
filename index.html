@@ -1711,11 +1711,6 @@ function mInput(action){
     if(action==='down')G.keys.down=true;
     if(action==='jump')G.keys.jump=true;
     if(action==='shoot')G.keys.shoot=true;
-    // Auto-release mobile keys after short delay
-    setTimeout(()=>{
-        if(action==='jump')G.keys.jump=false;
-        if(action==='shoot')G.keys.shoot=false;
-    },100);
 }
 
 document.addEventListener('keydown',e=>{
@@ -1748,13 +1743,35 @@ document.querySelectorAll('#dpad button').forEach(btn=>{
         if(cls.includes('left'))G.keys.left=true;
         if(cls.includes('right'))G.keys.right=true;
     },{passive:false});
-    btn.addEventListener('touchend',e=>{e.preventDefault();
+    const release=e=>{e.preventDefault();
         if(cls.includes('up'))G.keys.up=false;
         if(cls.includes('down'))G.keys.down=false;
         if(cls.includes('left'))G.keys.left=false;
         if(cls.includes('right'))G.keys.right=false;
-    },{passive:false});
+    };
+    btn.addEventListener('touchend',release,{passive:false});
+    btn.addEventListener('touchcancel',release,{passive:false});
 });
+
+// Touch hold for action buttons
+document.querySelectorAll('#action-btns button').forEach(btn=>{
+    const isJump=btn.classList.contains('jump-btn');
+    btn.addEventListener('touchstart',e=>{e.preventDefault();
+        if(isJump)G.keys.jump=true; else G.keys.shoot=true;
+    },{passive:false});
+    const release=e=>{e.preventDefault();
+        if(isJump)G.keys.jump=false; else G.keys.shoot=false;
+    };
+    btn.addEventListener('touchend',release,{passive:false});
+    btn.addEventListener('touchcancel',release,{passive:false});
+});
+
+// Global touch safety — release all keys if all touches end
+document.addEventListener('touchend',e=>{
+    if(e.touches.length===0){
+        G.keys.left=false;G.keys.right=false;G.keys.up=false;G.keys.down=false;
+    }
+},{passive:true});
 
 // ===== GAME LOOP =====
 let lastTime=0,dt=1;
