@@ -541,20 +541,20 @@ function update(){
     const pastFirst=G.level>5; // past first cycle
     const isFirstCrematorium=(G.level===5);
 
-    // No enemies on first crematorium (level 5)
+    // Spheres: always active — it's called Silver Spheres
+    {
+        const maxSpheres=Math.min(1+Math.floor(G.level/2),6);
+        G.sphereTimer+=dt;
+        if(G.sphereTimer>=G.sphereInterval&&G.spheres.length<maxSpheres){G.sphereTimer=0;spawnSphere();}
+    }
+
+    // No other enemies on first crematorium (level 5)
     if(!isFirstCrematorium){
 
     // Dwarves: pos 1 (levels 1,6,11...)
     if(pos===1){
         G.dwarfTimer+=dt;
         if(G.dwarfTimer>=G.dwarfInterval){G.dwarfTimer=0;spawnDwarf();}
-    }
-
-    // Spheres: always active — it's called Silver Spheres
-    {
-        const maxSpheres=Math.min(1+Math.floor(G.level/2),6);
-        G.sphereTimer+=dt;
-        if(G.sphereTimer>=G.sphereInterval&&G.spheres.length<maxSpheres){G.sphereTimer=0;spawnSphere();}
     }
 
     // Gravers: pos 3 (levels 3,8,13...)
