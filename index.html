@@ -550,9 +550,9 @@ function update(){
         if(G.dwarfTimer>=G.dwarfInterval){G.dwarfTimer=0;spawnDwarf();}
     }
 
-    // Spheres: pos 2 (levels 2,7,12...) OR any level past first cycle
-    if(pos===2||pastFirst){
-        const maxSpheres=pos===2?Math.min(2+Math.floor((G.level-2)/5),6):Math.min(1+Math.floor((G.level-6)/5),4);
+    // Spheres: always active — it's called Silver Spheres
+    {
+        const maxSpheres=Math.min(1+Math.floor(G.level/2),6);
         G.sphereTimer+=dt;
         if(G.sphereTimer>=G.sphereInterval&&G.spheres.length<maxSpheres){G.sphereTimer=0;spawnSphere();}
     }
