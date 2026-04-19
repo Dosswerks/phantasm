@@ -467,10 +467,10 @@ function update(){
     // Clamp to screen
     if(G.px<0)G.px=0;if(G.px>W-G.pw)G.px=W-G.pw;
     if(G.py>590)G.py=590;
-    // Wall collision
+    // Wall collision — only when Reggie's feet are within the wall's tier range
     if(G.walls){
         for(const w of G.walls){
-            if(G.px+G.pw>w.x&&G.px<w.x+w.w&&G.py+G.ph>w.y&&G.py<w.y+w.h){
+            if(G.px+G.pw>w.x&&G.px<w.x+w.w&&G.py+G.ph>w.y&&G.py<w.y+w.h&&G.py+G.ph<=w.y+w.h+10){
                 // Push player out horizontally
                 const fromLeft=G.px+G.pw/2<w.x+w.w/2;
                 if(fromLeft)G.px=w.x-G.pw; else G.px=w.x+w.w;
