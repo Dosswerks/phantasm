@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phantasm: Silver Spheres</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;display:flex;flex-direction:column;align-items:center;min-height:100vh;font-family:Arial,Helvetica,sans-serif;font-weight:bold;color:#fff;overflow-x:hidden;overflow-y:auto;-webkit-user-select:none;user-select:none}
+#ui{width:480px;max-width:100vw;display:flex;justify-content:space-between;padding:8px 10px;font-size:15px;background:#1a0a1a;border-bottom:2px solid #3e3388}
+#game-wrapper{position:relative;width:480px;max-width:100vw;border:2px solid #3e3388;border-top:none;overflow:hidden}
+canvas{display:block;width:100%;height:auto;touch-action:none}
+#controls{width:480px;max-width:100vw;display:none;background:#1a0a1a;padding:10px;border:2px solid #3e3388;border-top:none;touch-action:manipulation;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#ctrl-layout{display:flex;justify-content:space-between;align-items:center;touch-action:manipulation}
+#dpad{position:relative;width:130px;height:130px}
+#dpad button{position:absolute;width:42px;height:42px;font-size:18px;font-weight:bold;border:2px solid #3e3388;border-radius:8px;background:#2a1a2a;color:#fff;cursor:pointer;touch-action:manipulation}
+#dpad .up{top:0;left:44px}
+#dpad .down{bottom:0;left:44px}
+#dpad .left{top:44px;left:0}
+#dpad .right{top:44px;right:0}
+#action-btns{display:flex;flex-direction:column;gap:8px}
+#action-btns button{width:80px;height:50px;font-size:14px;font-weight:bold;border:2px solid #cc4444;border-radius:10px;background:#4a1a1a;color:#ff6666;cursor:pointer;touch-action:manipulation}
+#action-btns .jump-btn{border-color:#44aa44;background:#1a3a1a;color:#66ff66}
+#start-screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;background:#0a0a0a;z-index:10;cursor:pointer;padding-bottom:20px}
+#start-screen.has-box-art{gap:0;padding-bottom:0}
+#start-screen h1{font-size:28px;color:#fff;text-shadow:0 0 20px rgba(62,51,136,0.6)}
+#start-screen h2{font-size:14px;color:#888;font-weight:normal;margin-top:4px}
+#start-screen p{font-size:13px;color:#aaa;text-align:center;margin:4px 0}
+#box-art-container{position:relative;width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#0a0a0a}
+#box-art{display:block;width:100%;height:100%;object-fit:cover}
+#start-screen.has-box-art p{position:absolute;color:#000;font-size:13px;text-shadow:none;z-index:11;padding:8px;line-height:1.4;width:100%;text-align:center}
+#start-screen.has-box-art p:nth-child(3){bottom:120px;left:0}
+#start-screen.has-box-art p:nth-child(4){bottom:70px;left:0}
+#start-screen.has-box-art p:last-child{bottom:30px;left:0}
+.has-box-art #splash-title,.has-box-art #splash-sub{display:none}
+.start-hint{font-size:18px!important;font-weight:bold;color:#3e3388!important;animation:flash 1s ease-in-out infinite}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:0.2}}
+.hidden{display:none!important}
+@media(max-width:500px){#controls{display:block}#ui{font-size:13px}}
+</style>
+</head>
+<body>
+<div id="ui">
+<span>SCORE: <span id="score">0</span></span>
+<span>LEVEL: <span id="level">1</span></span>
+<span>LIVES: <span id="lives">3</span></span>
+</div>
+<div id="game-wrapper">
+<canvas id="game" width="480" height="600"></canvas>
+<div id="start-screen">
+<div id="box-art-container" class="hidden"><img id="box-art" src="" alt="Phantasm: Silver Spheres"></div>
+<h1 id="splash-title">PHANTASM: SILVER SPHERES</h1>
+<h2 id="splash-sub">A Dosswerks Arcade Game</h2>
+<p>Arrows to move/climb<br>Z to jump, X to shoot</p>
+<p><i></i>Smash the urns to free Mike!</i></p>
+<p class="start-hint">CLICK OR TAP TO START</p>
+</div>
+</div>
+<div id="controls">
+<div id="ctrl-layout">
+<div id="dpad">
+<button class="up" onclick="mInput('up')">▲</button>
+<button class="left" onclick="mInput('left')">◄</button>
+<button class="right" onclick="mInput('right')">►</button>
+<button class="down" onclick="mInput('down')">▼</button>
+</div>
+<div id="action-btns">
+<button class="jump-btn" onclick="mInput('jump')">JUMP</button>
+<button onclick="mInput('shoot')">🔫 FIRE</button>
+</div>
+</div>
+</div>
+<div style="width:480px;max-width:100vw;text-align:center;padding:10px 0;">
+<a href="story.html" target="_blank" style="color:#fff;font-size:18px;text-decoration:none;">📖 STORY AND INSTRUCTIONS 📖</a>
+<br><span style="color:#777;font-size:13px;">Press R to Restart. Press Q to Quit.</span>
+<br>
+<span style="color:#999;font-size:12px;">Based on the <a href="https://www.phantasm.com/" target="_blank" style="color:#aaa;">Phantasm</a> film franchise. This free game is a loving tribute to Don Coscarelli's vision and the legion of fans it has spawned. No copyright infringement is intended. Visit <a href="https://www.phantasm.com/" target="_blank" style="color:#aaa;">phantasm.com</a> for films, merch, and more.</span>
+<br>
+<span style="color:#777;font-size:12px;">A game by <a href="https://www.andrewdoss.com/" target="_blank" style="color:#aaa;">Andrew Doss</a></span>
+</div>
+<script>
+// ===== ASSET CONFIG =====
+const A={
+    boxArtImage:'assets/box-art.png',
+    reggieLeft:'assets/reggie-left.png',
+    reggieRight:'assets/reggie-right.png',
+    reggieClimb:'assets/reggie-climb.png',
+    mikeImage:'assets/mike.png',
+    lockImage:'assets/lock.png',
+    tallManImage:'assets/tallman.png',
+    tallManFallImage:'assets/tall-man-fall.png',
+    sphereImage:'assets/sphere.png',
+    dwarfImage:'assets/dwarf1.png',
+    dwarfImage2:'assets/dwarf2.png',
+    hearseImage:'assets/hearse.png',
+    graverImage:'assets/graver1.png',
+    graverImage2:'assets/graver2.png',
+    barrelImage:'assets/barrels.png',
+    hemicudaImage:'assets/hemicuda.png',
+    columnImage:'assets/column.png',
+    topTierBg:'assets/top-tier-bg.png',
+    urnImage:'assets/urn.png',
+    shotgunBlast:'assets/shotgun.mp3',
+    sphereDestroy:'assets/sphere-destroy.mp3',
+    dwarfDestroy:'assets/dwarf-destroy.mp3',
+    graverDestroy:'assets/graver-destroy.mp3',
+    playerDeath:'assets/death.mp3',
+    rescueSound:'assets/rescue.mp3',
+    levelSound:'assets/level.mp3',
+    hearseSound:'assets/hearse.mp3',
+    dwarfSpawn:'assets/dwarf-spawn.mp3',
+    sphereSpawn:'assets/sphere-spawn.mp3',
+    graverSpawn:'assets/graver-spawn.mp3',
+    gameoverSound:'assets/gameover.mp3',
+    teleportSound:'assets/teleport.mp3',
+    jumpSound:'assets/jump.mp3',
+    tallManFallSound:'assets/tallman-fall.mp3',
+    tallManBurnSound:'assets/tallman-burn.mp3',
+    leverSound:'assets/lever.mp3',
+    backgroundMusic:'assets/music.mp3',
+};
+const C=document.getElementById('game'),X=C.getContext('2d');
+const W=480,H=600;
+const img={},snd={};
+function li(k,s){return new Promise(r=>{if(!s)return r();const i=new Image();i.onload=()=>{img[k]=i;r()};i.onerror=()=>r();i.src=s})}
+function ls(k,s){if(!s)return;snd[k]=new Audio(s);snd[k].volume=0.6}
+function ps(k){if(!snd[k])return;snd[k].currentTime=0;snd[k].play().catch(()=>{});}
+let music=null;
+function startM(){if(music&&music.paused)music.play().catch(()=>{})}
+function stopM(){if(music){music.pause();music.currentTime=0}}
+
+// ===== LEVEL LAYOUTS =====
+// Each level: platforms, ladders, doors, mike position, tallman position
+// Platform: {x,y,w} Ladder: {x,y,h} Door: {x,y,side}
+// Tiers: ground=590, then 490, 390, 290, 190, 90
+// Canvas: 480w x 600h. Reggie: 24w x 36h. Ladders: 18w.
+
+const LAYOUTS=[
+{// Layout 0: Left-right zigzag
+plats:[{x:0,y:590,w:480},{x:0,y:490,w:220},{x:280,y:490,w:200},{x:0,y:390,w:200},{x:260,y:390,w:220},{x:0,y:290,w:220},{x:280,y:290,w:200},{x:0,y:190,w:200},{x:260,y:190,w:220},{x:0,y:90,w:480}],
+ladders:[{x:380,y:490,h:100},{x:60,y:390,h:100},{x:380,y:290,h:100},{x:160,y:190,h:100},{x:320,y:90,h:100},{x:60,y:90,h:100}],
+doors:[{x:260,y:190,side:1},{x:50,y:290,side:-1}],portals:[{x:160,y:490},{x:340,y:290}],mikeX:420,collectX:60,tierCount:5},
+{// Layout 1: Right-left zigzag
+plats:[{x:0,y:590,w:480},{x:0,y:490,w:200},{x:260,y:490,w:220},{x:0,y:390,w:220},{x:280,y:390,w:200},{x:0,y:290,w:200},{x:260,y:290,w:220},{x:0,y:190,w:480},{x:0,y:90,w:480}],
+ladders:[{x:165,y:490,h:100},{x:380,y:390,h:100},{x:60,y:290,h:100},{x:120,y:190,h:100},{x:380,y:190,h:100},{x:160,y:90,h:100},{x:300,y:90,h:100}],
+doors:[{x:40,y:190,side:1},{x:160,y:290,side:-1}],portals:[{x:320,y:490},{x:300,y:290}],walls:[{x:230,y:100,w:10,h:90}],mikeX:60,collectX:420,tierCount:5},
+{// Layout 2: Wide platforms zigzag
+plats:[{x:0,y:590,w:480},{x:0,y:490,w:220},{x:260,y:490,w:220},{x:60,y:390,w:360},{x:0,y:290,w:200},{x:280,y:290,w:200},{x:0,y:190,w:480},{x:0,y:90,w:480}],
+ladders:[{x:340,y:490,h:100},{x:100,y:390,h:100},{x:380,y:290,h:100},{x:100,y:190,h:100},{x:430,y:190,h:100},{x:380,y:90,h:100},{x:60,y:90,h:100}],
+doors:[{x:160,y:190,side:-1},{x:400,y:290,side:1}],portals:[{x:160,y:490},{x:160,y:290}],walls:[{x:230,y:100,w:10,h:90}],mikeX:420,collectX:60,tierCount:5},
+{// Layout 3: Staircase zigzag
+plats:[{x:0,y:590,w:480},{x:0,y:490,w:480},{x:0,y:390,w:480},{x:0,y:290,w:480},{x:0,y:190,w:480},{x:0,y:90,w:480}],
+ladders:[{x:400,y:490,h:100},{x:60,y:390,h:100},{x:400,y:290,h:100},{x:60,y:190,h:100},{x:430,y:190,h:100},{x:340,y:90,h:100},{x:160,y:90,h:100}],
+doors:[{x:200,y:290,side:1},{x:100,y:190,side:-1}],portals:[{x:200,y:490},{x:360,y:390}],walls:[{x:230,y:100,w:10,h:90}],mikeX:60,collectX:420,tierCount:5},
+{// Layout 4: Fortress zigzag
+plats:[{x:0,y:590,w:480},{x:0,y:490,w:220},{x:280,y:490,w:200},{x:40,y:390,w:400},{x:0,y:290,w:220},{x:280,y:290,w:200},{x:40,y:190,w:400},{x:0,y:90,w:200},{x:280,y:90,w:200}],
+ladders:[{x:180,y:490,h:100},{x:380,y:390,h:100},{x:80,y:290,h:100},{x:380,y:190,h:100},{x:80,y:90,h:100},{x:380,y:90,h:100}],
+doors:[{x:300,y:190,side:1},{x:150,y:290,side:-1}],portals:[{x:280,y:390},{x:100,y:490}],mikeX:420,collectX:60,tierCount:5},
+{// Layout 5: Asymmetric zigzag
+plats:[{x:0,y:590,w:480},{x:0,y:490,w:260},{x:320,y:490,w:160},{x:0,y:390,w:160},{x:220,y:390,w:260},{x:0,y:290,w:260},{x:320,y:290,w:160},{x:0,y:190,w:160},{x:220,y:190,w:260},{x:0,y:90,w:200},{x:280,y:90,w:200}],
+ladders:[{x:360,y:490,h:100},{x:60,y:390,h:100},{x:360,y:290,h:100},{x:60,y:190,h:100},{x:320,y:90,h:100},{x:60,y:90,h:100}],
+doors:[{x:300,y:190,side:1},{x:160,y:290,side:1}],portals:[{x:200,y:490},{x:260,y:290}],mikeX:60,collectX:420,tierCount:5},
+];
+
+function generateLevel(lvl){
+    // Every 5th level is a crematorium
+    if(lvl%5===0)return generateCrematorium(lvl);
+
+    // Pick a layout — cycle through them
+    const layout=LAYOUTS[(lvl-1)%LAYOUTS.length];
+
+    // Deep copy so we don't mutate the template
+    const plats=layout.plats.map(p=>({...p}));
+    const ladders=layout.ladders.map(l=>({...l}));
+    const doors=layout.doors.map(d=>({...d}));
+    const portals=layout.portals.map(p=>({...p}));
+    const walls=(layout.walls||[]).map(w=>({...w}));
+
+    // Alternate Mike/collectible sides each level
+    const flipSide=lvl%2===0;
+    const mikeX=flipSide?(480-layout.mikeX):layout.mikeX;
+    const collectX=flipSide?(480-layout.collectX):layout.collectX;
+    const topY=90;
+    const mikeY=topY-40;
+    const collectY=mikeY;
+
+    return {plats,ladders,doors,mikeX,mikeY,collectX,collectY,
+            tallManX:W/2,tallManY:mikeY-20,tierCount:layout.tierCount,hasKey:false,
+            portals,walls,isCrematorium:false};
+}
+
+function generateCrematorium(lvl){
+    const plats=[],ladders=[],doors=[],levers=[],coffins=[];
+    // Ground floor — gap in center for the main furnace
+    plats.push({x:0,y:590,w:215});
+    plats.push({x:265,y:590,w:215});
+    // 4 conveyor tiers — centered gaps
+    const tiers=[490,390,290,190];
+    const tierCount=4;
+    for(let t=0;t<tierCount;t++){
+        const ty=tiers[t];
+        const dir=t%2===0?1:-1;
+        plats.push({x:0,y:ty,w:215,conveyorDir:dir,conveyorSpeed:0.5+lvl*0.05});
+        plats.push({x:265,y:ty,w:215,conveyorDir:dir,conveyorSpeed:0.5+lvl*0.05});
+    }
+    // Small furnaces at conveyor ends
+    const furnaces=[];
+    for(let t=0;t<tierCount;t++){
+        const ty=tiers[t];
+        const dir=plats.find(p=>p.y===ty).conveyorDir;
+        furnaces.push({x:dir>0?460:0,y:ty,side:dir,isMain:false});
+    }
+    // Main furnace in center
+    furnaces.push({x:190,y:590,side:0,isMain:true});
+    // Ladders — staggered, not touching anything
+    ladders.push({x:140,y:490,h:100});ladders.push({x:380,y:490,h:100});
+    ladders.push({x:60,y:390,h:100});ladders.push({x:300,y:390,h:100});
+    ladders.push({x:140,y:290,h:100});ladders.push({x:420,y:290,h:100});
+    ladders.push({x:60,y:190,h:100});ladders.push({x:300,y:190,h:100});
+    // 3 levers — opposite end from furnaces on each tier
+    // Tier 490: furnace on right, lever on left
+    levers.push({x:40,y:490,activated:false});
+    // Tier 390: furnace on left, lever on right
+    levers.push({x:455,y:390,activated:false});
+    // Tier 290: furnace on right, lever on left
+    levers.push({x:40,y:290,activated:false});
+    // Tall Man centered on top tier
+    const tallManX=W/2;
+    // Barrel spawn points — away from ladders, levers, furnaces
+    doors.push({x:340,y:490,side:1});
+    doors.push({x:90,y:290,side:-1});
+
+    return {plats,ladders,doors,furnaces,levers,coffins:[],
+            mikeX:-100,mikeY:-100,collectX:-100,collectY:-100,
+            tallManX,tallManY:50,tallManFurnaceX:W/2,
+            tallManPushProgress:0,tallManOnConveyor:true,
+            tallManFalling:false,tallManFallY:0,
+            laserBeams:3, // 3 beams active
+            tierCount,hasKey:true,
+            isCrematorium:true,portals:[],walls:[],topConveyorDir:0};
+}
+</script>
+<script>
+// ===== GAME STATE =====
+let G={};
+const GRAVITY=0.5,JUMP_VEL=-7.5,MOVE_SPD=2.5,CLIMB_SPD=2,SHOT_SPD=6,SHOT_COOLDOWN=30;
+
+function initGame(){
+    const lvl=generateLevel(1);
+    G={run:false,over:false,win:false,
+       score:0,level:1,lives:3,extraLifeAt:10000,
+       // Player
+       px:40,py:554,pvx:0,pvy:0,pdir:1,onGround:false,climbing:false,
+       pw:30,ph:54,shotCooldown:0,invincible:0,
+       hasKey:false,
+       // Level
+       ...lvl,
+       // Enemies
+       spheres:[],dwarves:[],gravers:[],hearse:null,
+       // Shots
+       shots:[],
+       // Spawn timers
+       sphereTimer:0,sphereInterval:180,
+       dwarfTimer:0,dwarfInterval:300,
+       graverTimer:0,graverInterval:120,
+       hearseTimer:0,hearseInterval:600,
+       // Tall Man animation
+       tallManAnim:0,
+       // Level announce
+       levelAnnounce:240,levelSoundPlayed:false,
+       // Death pause
+       deathPause:0,pendingGameOver:false,
+       // Rescue pause
+       rescuePause:0,
+       // Particles
+       particles:[],
+       // Keys
+       keys:{},
+    };
+    updUI();
+}
+
+function nextLevel(){
+    G.level++;
+    const lvl=generateLevel(G.level);
+    Object.assign(G,lvl);
+    G.px=40;G.py=554;G.pvx=0;G.pvy=0;G.pdir=1;G.onGround=false;G.climbing=false;
+    G.spheres=[];G.dwarves=[];G.gravers=[];G.hearse=null;G.shots=[];G.particles=[];
+    G.hasKey=lvl.hasKey||false;
+    G.coffins=lvl.coffins||[];
+    G.furnaces=lvl.furnaces||[];
+    G.levers=lvl.levers||[];
+    G.isCrematorium=lvl.isCrematorium||false;
+    G.tallManPushProgress=0;G.tallManOnConveyor=lvl.tallManOnConveyor||false;
+    G.tallManFurnaceX=lvl.tallManFurnaceX||0;G.topConveyorDir=lvl.topConveyorDir||0;
+    G.sphereTimer=0;G.dwarfTimer=0;G.graverTimer=0;G.hearseTimer=G.level===4?400:0;
+    G.sphereInterval=Math.max(60,180-G.level*15);
+    G.dwarfInterval=Math.max(240,600-G.level*20);
+    G.graverInterval=Math.max(80,120-G.level*5);
+    G.hearseInterval=Math.max(300,600-G.level*30);
+    G.levelAnnounce=240;G.levelSoundPlayed=false;
+    G.invincible=60;
+    G.score+=1000; // rescue bonus
+    updUI();
+}
+
+function loseLife(){
+    G.lives--;
+    ps('death');
+    addBigParticles(G.px+G.pw/2,G.py+G.ph/2,'#cc0000',16);
+    G.deathPause=60;
+    if(G.lives<=0){G.deathPause=60;G.pendingGameOver=true;}
+    updUI();
+}
+
+function updUI(){
+    document.getElementById('score').textContent=G.score;
+    document.getElementById('level').textContent=G.level;
+    document.getElementById('lives').textContent=G.lives;
+}
+
+function addParticles(x,y,color,count){
+    for(let i=0;i<count;i++){
+        G.particles.push({x,y,vx:(Math.random()-0.5)*5,vy:(Math.random()-0.5)*5,life:20+Math.random()*15,color,size:4});
+    }
+}
+
+function addBigParticles(x,y,color,count){
+    for(let i=0;i<count;i++){
+        G.particles.push({x,y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:25+Math.random()*20,color,size:8});
+    }
+}
+
+function addBloodSplash(x,y){
+    for(let i=0;i<10;i++){
+        const angle=-Math.PI/2+(Math.random()-0.5)*1.6;
+        const speed=2+Math.random()*3;
+        G.particles.push({
+            x,y,
+            vx:Math.cos(angle)*speed,
+            vy:Math.sin(angle)*speed,
+            life:20+Math.random()*12,
+            color:Math.random()>0.3?'#cc0000':'#880000',
+            size:2+Math.floor(Math.random()*3),
+            gravity:0.15
+        });
+    }
+}
+
+// ===== COLLISION HELPERS =====
+function onPlatform(x,y,w,h){
+    for(const p of G.plats){
+        // Wider collision window to prevent falling through at high speed
+        if(x+w>p.x&&x<p.x+p.w&&y+h>=p.y&&y+h<=p.y+16&&G.pvy>=0)return p;
+    }
+    return null;
+}
+
+function nearLadder(x,y,w,h){
+    const cx=x+w/2; // player center x
+    for(const l of G.ladders){
+        // Player center must be within ladder rails (l.x to l.x+18)
+        if(cx>=l.x&&cx<=l.x+18&&y+h>l.y-10&&y<l.y+l.h)return l;
+    }
+    return null;
+}
+
+function ladderBelow(x,y,w,h){
+    const cx=x+w/2;
+    for(const l of G.ladders){
+        if(cx>=l.x&&cx<=l.x+18&&y+h>=l.y-4&&y+h<=l.y+20)return l;
+    }
+    return null;
+}
+
+function boxCollide(a,b){
+    return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+}
+</script>
+<script>
+// ===== UPDATE =====
+function update(){
+    if(!G.run||G.over)return;
+    if(G.levelAnnounce>0){if(!G.levelSoundPlayed){ps('level');G.levelSoundPlayed=true;}G.levelAnnounce-=dt;return;}
+    // Death pause — particles still update, but gameplay frozen
+    if(G.deathPause>0){
+        G.deathPause-=dt;
+        for(let i=G.particles.length-1;i>=0;i--){
+            const p=G.particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;
+            if(p.gravity)p.vy+=p.gravity*dt;
+            p.life-=dt;if(p.life<=0)G.particles.splice(i,1);
+        }
+        if(G.deathPause<=0){
+            G.deathPause=0;
+            if(G.pendingGameOver){
+                G.over=true;stopM();ps('gameover');G.pendingGameOver=false;return;
+            }
+            G.px=40;G.py=554;G.pvx=0;G.pvy=0;G.climbing=false;G.invincible=120;
+            G.shots=[];
+        }
+        return;
+    }
+    // Rescue pause — everything frozen
+    if(G.rescuePause>0){
+        G.rescuePause-=dt;
+        for(let i=G.particles.length-1;i>=0;i--){
+            const p=G.particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;
+            if(p.gravity)p.vy+=p.gravity*dt;
+            p.life-=dt;if(p.life<=0)G.particles.splice(i,1);
+        }
+        if(G.rescuePause<=0){G.rescuePause=0;nextLevel();}
+        return;
+    }
+    const K=G.keys;
+
+    // === Player movement ===
+    let lad=nearLadder(G.px,G.py,G.pw,G.ph);
+    if(!lad&&K.down&&G.onGround){
+        const below=ladderBelow(G.px,G.py,G.pw,G.ph);
+        if(below){lad=below;G.py+=4;}
+    }
+    if(lad&&(K.up||K.down)&&!K.jump){
+        G.climbing=true;
+        G.pvy=0;
+        if(K.up)G.py-=CLIMB_SPD*dt;
+        if(K.down)G.py+=CLIMB_SPD*dt;
+        if(G.py<lad.y-G.ph-10)G.py=lad.y-G.ph-10;
+        if(G.py+G.ph>lad.y+lad.h)G.py=lad.y+lad.h-G.ph;
+    } else {
+        G.climbing=false;
+    }
+    if(K.jump&&G.climbing){G.climbing=false;G.pvy=JUMP_VEL;G.onGround=false;K.jump=false;ps('jump');}
+
+    if(!G.climbing){
+        if(K.left){G.px-=MOVE_SPD*dt;G.pdir=-1;}
+        if(K.right){G.px+=MOVE_SPD*dt;G.pdir=1;}
+        G.pvy+=GRAVITY*dt;
+        G.py+=G.pvy*dt;
+        const plat=onPlatform(G.px,G.py,G.pw,G.ph);
+        if(plat){G.py=plat.y-G.ph;G.pvy=0;G.onGround=true;
+            if(plat.conveyorDir&&plat.conveyorSpeed){G.px+=plat.conveyorDir*plat.conveyorSpeed*dt;}
+        }
+        else{G.onGround=false;}
+        if(K.jump&&G.onGround){G.pvy=JUMP_VEL;G.onGround=false;ps('jump');}
+    }
+
+    // Portal teleport
+    if(K.up&&G.onGround&&G.portals&&G.portals.length===2){
+        for(let pi=0;pi<2;pi++){
+            const portal=G.portals[pi];
+            const other=G.portals[1-pi];
+            if(Math.abs(G.px+G.pw/2-portal.x)<20&&Math.abs(G.py+G.ph-portal.y)<8){
+                G.px=other.x-G.pw/2;G.py=other.y-G.ph;
+                G.invincible=Math.max(G.invincible,30);
+                addParticles(portal.x,portal.y-20,'#6b5cc8',10);
+                addParticles(other.x,other.y-20,'#6b5cc8',10);
+                ps('teleport');
+                K.up=false;
+                break;
+            }
+        }
+    }
+
+    // Clamp to screen
+    if(G.px<0)G.px=0;if(G.px>W-G.pw)G.px=W-G.pw;
+    if(G.py>590)G.py=590;
+    // Wall collision
+    if(G.walls){
+        for(const w of G.walls){
+            if(G.px+G.pw>w.x&&G.px<w.x+w.w&&G.py+G.ph>w.y&&G.py<w.y+w.h){
+                // Push player out horizontally
+                const fromLeft=G.px+G.pw/2<w.x+w.w/2;
+                if(fromLeft)G.px=w.x-G.pw; else G.px=w.x+w.w;
+            }
+        }
+    }
+    // Safety net — if stuck below ground with no platform, reset to ground
+    if(G.py>=588&&!onPlatform(G.px,G.py,G.pw,G.ph)&&G.pvy>=0){G.py=590-G.ph;G.pvy=0;G.onGround=true;}
+
+    // Shot cooldown
+    if(G.shotCooldown>0)G.shotCooldown-=dt;
+    if(K.shoot&&G.shotCooldown<=0){
+        G.shots.push({x:G.px+G.pw/2,y:G.py+G.ph/2-4,dir:G.pdir,w:12,h:4,life:40});
+        G.shotCooldown=SHOT_COOLDOWN;
+        ps('shotgun');
+    }
+    if(G.invincible>0)G.invincible-=dt;
+
+    // === Update shots ===
+    for(let i=G.shots.length-1;i>=0;i--){
+        const s=G.shots[i];
+        s.x+=s.dir*SHOT_SPD*dt;s.life-=dt;
+        if(s.life<=0||s.x<-20||s.x>W+20){G.shots.splice(i,1);continue;}
+        // Hit spheres
+        for(let j=G.spheres.length-1;j>=0;j--){
+            const sp=G.spheres[j];
+            if(boxCollide(s,{x:sp.x-16,y:sp.y-16,w:32,h:32})){
+                addParticles(sp.x,sp.y,'#ccccff',12);
+                G.spheres.splice(j,1);G.shots.splice(i,1);
+                G.score+=100;ps('sphereDestroy');updUI();break;
+            }
+        }
+    }
+    // Shot vs dwarves
+    for(let i=G.shots.length-1;i>=0;i--){
+        const s=G.shots[i];
+        for(let j=G.dwarves.length-1;j>=0;j--){
+            const d=G.dwarves[j];
+            if(boxCollide(s,{x:d.x,y:d.y,w:d.w,h:d.h})){
+                addBigParticles(d.x+d.w/2,d.y+d.h/2,'#ffcc00',12);
+                G.dwarves.splice(j,1);G.shots.splice(i,1);
+                G.score+=50;ps('dwarfDestroy');updUI();break;
+            }
+        }
+    }
+    // Shot vs gravers (3 hits to kill)
+    for(let i=G.shots.length-1;i>=0;i--){
+        const s=G.shots[i];
+        for(let j=G.gravers.length-1;j>=0;j--){
+            const gv=G.gravers[j];
+            if(boxCollide(s,{x:gv.x,y:gv.y,w:gv.w,h:gv.h})){
+                gv.hp--;
+                G.shots.splice(i,1);
+                addParticles(gv.x+gv.w/2,gv.y+gv.h/2,'#ffcc00',5);
+                if(gv.hp<=0){
+                    addBigParticles(gv.x+gv.w/2,gv.y+gv.h/2,'#ffcc00',16);
+                    G.gravers.splice(j,1);
+                    G.score+=150;ps('graverDestroy');updUI();
+                }
+                break;
+            }
+        }
+    }
+
+    // === Spawn enemies — progressive unlock ===
+    // Cycle position: 1=dwarves, 2=spheres, 3=gravers, 4=hearse, 5=crematorium
+    const pos=((G.level-1)%5)+1;
+    const pastFirst=G.level>5; // past first cycle
+    const isFirstCrematorium=(G.level===5);
+
+    // No enemies on first crematorium (level 5)
+    if(!isFirstCrematorium){
+
+    // Dwarves: pos 1 (levels 1,6,11...)
+    if(pos===1){
+        G.dwarfTimer+=dt;
+        if(G.dwarfTimer>=G.dwarfInterval){G.dwarfTimer=0;spawnDwarf();}
+    }
+
+    // Spheres: pos 2 (levels 2,7,12...) OR any level past first cycle
+    if(pos===2||pastFirst){
+        const maxSpheres=pos===2?Math.min(2+Math.floor((G.level-2)/5),6):Math.min(1+Math.floor((G.level-6)/5),4);
+        G.sphereTimer+=dt;
+        if(G.sphereTimer>=G.sphereInterval&&G.spheres.length<maxSpheres){G.sphereTimer=0;spawnSphere();}
+    }
+
+    // Gravers: pos 3 (levels 3,8,13...)
+    if(pos===3){
+        G.graverTimer+=dt;
+        if(G.graverTimer>=G.graverInterval){G.graverTimer=0;spawnGraver();}
+    }
+
+    // Hearse: pos 4 (levels 4,9,14...) — not on crematorium
+    if(pos===4&&!G.isCrematorium){
+        if(!G.hearse){
+            G.hearseTimer+=dt;
+            if(G.hearseTimer>=G.hearseInterval){G.hearseTimer=0;spawnHearse();}
+        }
+    }
+
+    } // end isFirstCrematorium check
+
+    // === Update spheres ===
+    for(let i=G.spheres.length-1;i>=0;i--){
+        const s=G.spheres[i];
+        // Rotate velocity vector for curved path
+        const cos=Math.cos(s.curve*dt),sin=Math.sin(s.curve*dt);
+        const nvx=s.vx*cos-s.vy*sin;
+        const nvy=s.vx*sin+s.vy*cos;
+        s.vx=nvx;s.vy=nvy;
+        s.x+=s.vx*dt;s.y+=s.vy*dt;
+        // Level 3+: slight tracking
+        if(G.level>=3){
+            const dx=G.px-s.x,dy=G.py-s.y;
+            const dist=Math.sqrt(dx*dx+dy*dy)||1;
+            s.vx+=dx/dist*0.02*dt;s.vy+=dy/dist*0.02*dt;
+        }
+        // Remove when fully off-screen
+        if(s.x<-30||s.x>W+30||s.y<-30||s.y>H+30){G.spheres.splice(i,1);continue;}
+        // Hit player
+        if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:s.x-16,y:s.y-16,w:32,h:32})){
+            G.spheres.splice(i,1);loseLife();
+        }
+    }
+
+    // === Update dwarves ===
+    for(let i=G.dwarves.length-1;i>=0;i--){
+        const d=G.dwarves[i];
+        d.climbing=d.climbing||false;
+
+        if(d.climbing){
+            // Climbing a ladder
+            d.y-=CLIMB_SPD*0.7*dt;
+            d.vy=0;
+            // Check if reached top of ladder
+            const onLad=nearLadder(d.x+d.w/2-9,d.y,d.w,d.h);
+            if(!onLad||d.y+d.h<=d.climbTarget+5){
+                d.climbing=false;
+            }
+        } else {
+            // Decide: chase horizontally or seek a ladder
+            const playerAbove=G.py<d.y-30;
+            if(playerAbove){
+                // Find nearest ladder that goes up from this tier
+                let bestLad=null,bestDist=9999;
+                for(const l of G.ladders){
+                    if(l.y+l.h>=d.y+d.h-10&&l.y+l.h<=d.y+d.h+10&&l.y<d.y){
+                        const dist=Math.abs((l.x+9)-(d.x+d.w/2));
+                        if(dist<bestDist){bestDist=dist;bestLad=l;}
+                    }
+                }
+                if(bestLad&&bestDist<6){
+                    // Close enough to ladder — start climbing
+                    d.climbing=true;
+                    d.climbTarget=bestLad.y;
+                    d.x=bestLad.x+9-d.w/2;
+                } else if(bestLad){
+                    // Move toward the ladder
+                    const ladCx=bestLad.x+9;
+                    if(d.x+d.w/2<ladCx)d.x+=d.speed*dt;
+                    else d.x-=d.speed*dt;
+                    d.dir=d.x+d.w/2<ladCx?1:-1;
+                } else {
+                    // No ladder found, chase horizontally
+                    if(d.x<G.px)d.x+=d.speed*dt; else d.x-=d.speed*dt;
+                    d.dir=d.x<G.px?1:-1;
+                }
+            } else {
+                // Player on same level or below — chase horizontally
+                if(d.x<G.px)d.x+=d.speed*dt; else d.x-=d.speed*dt;
+                d.dir=d.x<G.px?1:-1;
+            }
+            // Gravity
+            d.vy=(d.vy||0)+0.3*dt;d.y+=d.vy*dt;
+            const plat=onDwarfPlatform(d);
+            if(plat){d.y=plat.y-d.h;d.vy=0;}
+        }
+        // Keep dwarves in single file — push apart if too close
+        for(let j=0;j<G.dwarves.length;j++){
+            if(j===i)continue;
+            const other=G.dwarves[j];
+            if(Math.abs(d.y-other.y)<10&&Math.abs(d.x-other.x)<d.w+4){
+                // Push the trailing one back
+                if(d.dir>0&&d.x>other.x){other.x=d.x-d.w-4;}
+                else if(d.dir<0&&d.x<other.x){other.x=d.x+d.w+4;}
+                else if(d.dir>0&&d.x<other.x){d.x=other.x-d.w-4;}
+                else{d.x=other.x+d.w+4;}
+            }
+        }
+        // Off screen
+        if(d.y>H){G.dwarves.splice(i,1);continue;}
+        // Hit player
+        if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:d.x,y:d.y,w:d.w,h:d.h})){
+            G.dwarves.splice(i,1);loseLife();
+        }
+    }
+
+    // === Update gravers — patrol back and forth across tiers ===
+    for(let i=G.gravers.length-1;i>=0;i--){
+        const gv=G.gravers[i];
+        // Move in current direction
+        gv.x+=gv.dir*gv.speed*dt;
+        // Gravity — keep on platform
+        gv.vy=(gv.vy||0)+0.3*dt;gv.y+=gv.vy*dt;
+        const plat=onDwarfPlatform(gv);
+        if(plat){gv.y=plat.y-gv.h;gv.vy=0;}
+        // When fully off-screen on exit side, remove (will respawn from spawn system)
+        if(gv.dir>0&&gv.x>W+30){G.gravers.splice(i,1);continue;}
+        if(gv.dir<0&&gv.x<-30-gv.w){G.gravers.splice(i,1);continue;}
+        // Hit player
+        if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:gv.x,y:gv.y,w:gv.w,h:gv.h})){
+            G.gravers.splice(i,1);loseLife();
+        }
+    }
+
+    // === Update hearse ===
+    if(G.hearse){
+        const hr=G.hearse;
+        hr.x+=hr.speed*dt;
+        if(hr.x<-220||hr.x>W+220){G.hearse=null;}
+        else if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:hr.x,y:hr.y,w:hr.w,h:hr.h})){
+            G.hearse=null;loseLife();
+        }
+    }
+
+    // === Crematorium: lever activation and Tall Man fall ===
+    if(G.isCrematorium&&G.levers){
+        const K2=G.keys;
+        // Lever activation
+        for(const lv of G.levers){
+            if(!lv.activated&&K2.up&&G.onGround&&
+               Math.abs(G.px+G.pw/2-lv.x)<20&&Math.abs(G.py+G.ph-lv.y)<10){
+                lv.activated=true;
+                G.laserBeams=Math.max(0,(G.laserBeams||3)-1);
+                G.score+=200;
+                ps('lever');
+                addParticles(lv.x,lv.y-20,'#ff8800',12);
+                ps('rescue');
+                updUI();
+                K2.up=false;
+            }
+        }
+        // All levers pulled — Tall Man falls
+        if(G.laserBeams<=0&&G.tallManOnConveyor&&!G.tallManFalling){
+            G.tallManFalling=true;
+            G.tallManFallY=G.tallManY;
+            ps('tallManFall');
+        }
+        // Animate Tall Man falling
+        if(G.tallManFalling){
+            G.tallManFallY+=3*dt;
+            G.tallManY=G.tallManFallY;
+            // Reached the furnace (ground level)
+            if(G.tallManFallY>560){
+                G.tallManOnConveyor=false;
+                G.tallManFalling=false;
+                G.rescuePause=150;
+                G.score+=2000;
+                G.redFlash=30;
+                addBigParticles(W/2,570,'#ff4400',25);
+                addBigParticles(W/2,570,'#ffaa00',20);
+                addBigParticles(W/2,560,'#ff8800',15);
+                if(snd.tallManFall){snd.tallManFall.pause();snd.tallManFall.currentTime=0;}
+                ps('tallManBurn');
+                updUI();
+            }
+        }
+        // Furnace collision — Reggie loses a life if touching a furnace
+        if(G.invincible<=0&&G.furnaces){
+            for(const f of G.furnaces){
+                let fx,fy,fw,fh;
+                if(f.isMain){fx=W/2-50;fy=f.y-80;fw=100;fh=80;}
+                else{const bw=28,bh=40;fx=f.side>0?W-bw:0;fy=f.y-bh;fw=bw;fh=bh;}
+                if(boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:fx,y:fy,w:fw,h:fh})){
+                    loseLife();break;
+                }
+            }
+        }
+        // Coffin spawning on conveyors
+        G.coffinTimer=(G.coffinTimer||0)+dt;
+        if(G.coffinTimer>=180){
+            G.coffinTimer=0;
+            const convPlats=G.plats.filter(p=>p.conveyorDir&&p.conveyorDir!==0);
+            if(convPlats.length>0){
+                const cp=convPlats[Math.floor(Math.random()*convPlats.length)];
+                const startX=cp.conveyorDir>0?cp.x-90:cp.x+cp.w;
+                G.coffins.push({x:startX,y:cp.y-24,w:90,h:22,dir:cp.conveyorDir,speed:cp.conveyorSpeed*0.8,platY:cp.y});
+            }
+        }
+        // Update coffins
+        for(let i=G.coffins.length-1;i>=0;i--){
+            const cf=G.coffins[i];
+            cf.x+=cf.dir*cf.speed*dt;
+            if(cf.x<-100||cf.x>W+100){G.coffins.splice(i,1);continue;}
+        }
+    }
+
+    // === Collect key ===
+    if(!G.hasKey&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:G.collectX-20,y:G.collectY-20,w:40,h:40})){
+        G.hasKey=true;G.score+=200;
+        addParticles(G.collectX,G.collectY,'#ffcc00',15);
+        addBigParticles(G.collectX,G.collectY,'#ff8800',10);
+        ps('sphereDestroy');updUI();
+    }
+
+    // === Tall Man kills on touch ===
+    if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:G.tallManX-18,y:G.tallManY-10,w:36,h:50})){
+        loseLife();
+    }
+
+    // === Check rescue Mike (requires key) ===
+    if(G.hasKey&&G.rescuePause<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:G.mikeX-10,y:G.mikeY-10,w:30,h:40})){
+        G.rescuePause=150; // 2.5 second pause
+        ps('rescue');
+        addParticles(G.mikeX,G.mikeY,'#6b5cc8',15);
+    }
+
+    // === Extra life ===
+    if(G.score>=G.extraLifeAt){G.lives++;G.extraLifeAt+=10000;updUI();}
+
+    // === Tall Man anim ===
+    G.tallManAnim=(G.tallManAnim+dt)%120;
+
+    // === Particles ===
+    if(G.redFlash>0)G.redFlash-=dt;
+    for(let i=G.particles.length-1;i>=0;i--){
+        const p=G.particles[i];
+        p.x+=p.vx*dt;p.y+=p.vy*dt;
+        if(p.gravity)p.vy+=p.gravity*dt;
+        p.life-=dt;
+        if(p.life<=0)G.particles.splice(i,1);
+    }
+}
+
+function onDwarfPlatform(d){
+    for(const p of G.plats){
+        if(d.x+d.w>p.x&&d.x<p.x+p.w&&d.y+d.h>=p.y&&d.y+d.h<=p.y+16&&(d.vy||0)>=0)return p;
+    }
+    return null;
+}
+
+function spawnSphere(){
+    const baseSpd=1.5+G.level*0.3;
+    // Enter from a random edge
+    const edge=Math.floor(Math.random()*4); // 0=top,1=bottom,2=left,3=right
+    let sx,sy,vx,vy;
+    if(edge===0){sx=Math.random()*W;sy=-15;vx=(Math.random()-0.5)*baseSpd;vy=baseSpd*0.8+Math.random()*0.5;}
+    else if(edge===1){sx=Math.random()*W;sy=H+15;vx=(Math.random()-0.5)*baseSpd;vy=-(baseSpd*0.8+Math.random()*0.5);}
+    else if(edge===2){sx=-15;sy=Math.random()*H;vx=baseSpd*0.8+Math.random()*0.5;vy=(Math.random()-0.5)*baseSpd;}
+    else{sx=W+15;sy=Math.random()*H;vx=-(baseSpd*0.8+Math.random()*0.5);vy=(Math.random()-0.5)*baseSpd;}
+    // Curve direction: positive = clockwise, negative = counter-clockwise
+    const curve=(Math.random()>0.5?1:-1)*(0.004+Math.random()*0.004);
+    G.spheres.push({x:sx,y:sy,vx,vy,curve});
+    ps('sphereSpawn');
+}
+
+function spawnDwarf(){
+    if(!G.doors||G.doors.length===0)return;
+    const door=G.doors[Math.floor(Math.random()*G.doors.length)];
+    const speed=0.6+G.level*0.15;
+    G.dwarves.push({x:door.x+8,y:door.y-42,w:30,h:42,speed:Math.min(speed,2.5),dir:Math.random()>0.5?1:-1,vy:0});
+    ps('dwarfSpawn');
+}
+
+function spawnGraver(){
+    // Spawn one graver on a random tier, alternating direction per tier
+    // Only spawn on tiers that don't already have a graver
+    const tierYs=[490,390,290,190];
+    const openTiers=tierYs.filter(ty=>!G.gravers.some(g=>Math.abs(g.spawnTier-ty)<10));
+    if(openTiers.length===0)return;
+    const ty=openTiers[Math.floor(Math.random()*openTiers.length)];
+    const tierIdx=tierYs.indexOf(ty);
+    const fromLeft=tierIdx%2===0; // alternate direction per tier
+    const gx=fromLeft?-24:W+4;
+    const speed=0.6+G.level*0.06;
+    G.gravers.push({x:gx,y:ty-54,w:24,h:54,speed:Math.min(speed,1.8),dir:fromLeft?1:-1,vy:0,hp:3,spawnTier:ty,patrol:true});
+    ps('graverSpawn');
+}
+
+function spawnHearse(){
+    const candidates=G.plats.filter(p=>p.w>=220&&p.y<490&&p.y>90);
+    if(candidates.length===0)return;
+    const plat=candidates[Math.floor(Math.random()*candidates.length)];
+    const hy=plat.y-54;
+    const fromLeft=Math.random()>0.5;
+    G.hearse={x:fromLeft?-204:W+204,y:hy,w:204,h:54,speed:fromLeft?3+G.level*0.3:-(3+G.level*0.3)};
+    ps('hearse');
+}
+</script>
+<script>
+// ===== DRAW =====
+function draw(){
+    // Background — dark mausoleum
+    const bg=X.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,'#0e0812');bg.addColorStop(0.5,'#1a1020');bg.addColorStop(1,'#0a0608');
+    X.fillStyle=bg;X.fillRect(0,0,W,H);
+
+    if(!G.run&&!G.over)return;
+
+    // Level announce
+    if(G.levelAnnounce>0){
+        X.fillStyle='#6b5cc8';X.font='bold 44px Arial';X.textAlign='center';
+        X.fillText('LEVEL '+G.level,W/2,H/2-30);
+        // Level-specific messages
+        const lvlMod=((G.level-1)%5)+1;
+        const msgs={
+            1:'The Lurkers are after you!',
+            2:'The Spheres are unleashed!',
+            3:'The Gravers obey their master.',
+            4:'There\'s no one driving that thing!',
+            5:'Activate the levers! Seal his fate!'
+        };
+        if(G.isCrematorium){
+            X.fillStyle='#ff8844';X.font='bold 22px Arial';
+            X.fillText('THE CREMATORIUM',W/2,H/2+10);
+        }
+        X.fillStyle='#fff';X.font='italic bold 20px Arial';
+        X.fillText(msgs[lvlMod]||msgs[1],W/2,G.isCrematorium?H/2+42:H/2+15);
+        X.textAlign='left';
+        return;
+    }
+
+    drawMausoleum();
+    drawLadders();
+    drawPlatforms();
+    drawCoffins();
+    drawFurnaces();
+    drawWalls();
+    drawLevers();
+    drawHemicuda();
+    drawTallMan();
+    drawMike();
+    drawCollectible();
+    drawDoors();
+    drawPortals();
+    drawHearse();
+    drawDwarves();
+    drawGravers();
+    drawSpheres();
+    drawShots();
+    drawPlayer();
+    drawParticles();
+    if(G.redFlash>0){
+        X.fillStyle=`rgba(255,0,0,${Math.min(G.redFlash/30,1)*0.4})`;
+        X.fillRect(0,0,W,H);
+    }
+    drawHUD();
+    drawRescue();
+    drawGameOver();
+}
+
+function drawMausoleum(){
+    // Top level background
+    if(G.plats&&G.tierCount&&!G.isCrematorium){
+        const topY=90;
+        if(img.topTierBg){
+            X.drawImage(img.topTierBg,0,0,W,topY);
+        } else {
+            X.fillStyle='#b8b4b8';
+            X.fillRect(0,0,W,topY);
+        }
+    }
+}
+
+function drawPlatforms(){
+    for(const p of G.plats){
+        if(p.conveyorDir&&p.conveyorDir!==0){
+            // Conveyor belt
+            X.fillStyle='#3a3030';X.fillRect(p.x,p.y,p.w,10);
+            // Animated chevrons
+            X.fillStyle='#5a4a40';
+            const offset=(Date.now()*p.conveyorDir*0.05)%12;
+            for(let cx=p.x+offset;cx<p.x+p.w;cx+=12){
+                X.fillRect(cx,p.y+3,6,4);
+            }
+            // Edge rails
+            X.fillStyle='#6a5a50';
+            X.fillRect(p.x,p.y,p.w,2);X.fillRect(p.x,p.y+8,p.w,2);
+        } else {
+            // Marble platform
+            const pg=X.createLinearGradient(p.x,p.y,p.x,p.y+10);
+            pg.addColorStop(0,'#5a5060');pg.addColorStop(0.5,'#4a4050');pg.addColorStop(1,'#3a3040');
+            X.fillStyle=pg;X.fillRect(p.x,p.y,p.w,10);
+            X.fillStyle='rgba(200,180,220,0.3)';X.fillRect(p.x,p.y,p.w,2);
+        }
+    }
+}
+
+function drawFurnaces(){
+    if(!G.furnaces)return;
+    for(const f of G.furnaces){
+        if(f.isMain){
+            // Main furnace — centered, open top, flames and embers
+            const fxC=W/2-50; // centered 100px wide
+            const fy=f.y;
+            X.fillStyle='#3a1010';X.fillRect(fxC,fy-80,100,80);
+            X.fillStyle='#4a1818';X.fillRect(fxC-4,fy-80,8,80);X.fillRect(fxC+96,fy-80,8,80);
+            const flicker=Math.sin(Date.now()*0.012)*0.2+0.8;
+            const fireG=X.createLinearGradient(fxC,fy-70,fxC,fy);
+            fireG.addColorStop(0,`rgba(255,${Math.floor(60+flicker*40)},0,${flicker})`);
+            fireG.addColorStop(0.5,`rgba(255,${Math.floor(120+flicker*60)},20,${flicker*0.8})`);
+            fireG.addColorStop(1,`rgba(255,200,50,${flicker*0.6})`);
+            X.fillStyle=fireG;X.fillRect(fxC+6,fy-74,88,74);
+            X.fillStyle=`rgba(255,100,0,${flicker*0.7})`;
+            for(let fi=0;fi<5;fi++){
+                const flx=fxC+15+fi*18;
+                const flh=15+Math.sin(Date.now()*0.008+fi*2)*10;
+                X.beginPath();X.moveTo(flx,fy-80);X.quadraticCurveTo(flx+5,fy-80-flh,flx+10,fy-80);X.fill();
+            }
+            X.fillStyle=`rgba(255,180,50,${flicker*0.8})`;
+            for(let ei=0;ei<8;ei++){
+                const ex=fxC+10+((Date.now()*0.03+ei*60)%80);
+                const ey=fy-80-((Date.now()*0.05+ei*40)%60);
+                X.beginPath();X.arc(ex,ey,1.5+Math.random(),0,Math.PI*2);X.fill();
+            }
+        } else {
+            // Small side furnaces — brick, side-facing with open mouth
+            const flicker=Math.sin(Date.now()*0.01)*0.2+0.8;
+            const fw=28,fh=40;
+            const fx=f.side>0?W-fw:0;
+            const fy=f.y-fh;
+            // Brick body
+            X.fillStyle='#5a2a1a';X.fillRect(fx,fy,fw,fh);
+            // Brick pattern
+            X.strokeStyle='#3a1a0a';X.lineWidth=1;
+            for(let by=fy+8;by<fy+fh;by+=8){
+                X.beginPath();X.moveTo(fx,by);X.lineTo(fx+fw,by);X.stroke();
+            }
+            for(let bx=fx+(f.side>0?6:0);bx<fx+fw;bx+=12){
+                X.beginPath();X.moveTo(bx,fy);X.lineTo(bx,fy+fh);X.stroke();
+            }
+            // Open mouth — fire inside
+            const mouthX=f.side>0?fx:fx+fw-10;
+            X.fillStyle=`rgba(255,${Math.floor(100+flicker*80)},0,${flicker})`;
+            X.fillRect(mouthX,fy+6,10,fh-12);
+            X.fillStyle=`rgba(255,200,50,${flicker*0.5})`;
+            X.fillRect(mouthX+2,fy+10,6,fh-20);
+            // Chimney on top
+            X.fillStyle='#4a1a0a';X.fillRect(fx+fw/2-4,fy-10,8,12);
+            // Embers flying outward and upward from mouth
+            X.fillStyle=`rgba(255,180,50,${flicker*0.7})`;
+            for(let ei=0;ei<4;ei++){
+                const eDir=f.side>0?-1:1;
+                const ex=mouthX+eDir*((Date.now()*0.04+ei*30)%25);
+                const ey=fy+10+ei*8-((Date.now()*0.03+ei*20)%20);
+                X.beginPath();X.arc(ex,ey,1+Math.random(),0,Math.PI*2);X.fill();
+            }
+        }
+    }
+    // Draw laser beams under Tall Man (crematorium only)
+    if(G.isCrematorium&&G.tallManOnConveyor){
+        const beams=G.laserBeams||0;
+        const feetY=90;
+        const beamYs=[90+28,90+14,90]; // top beam right under feet
+        const laserPulse=Math.sin(Date.now()*0.008)*0.3+0.7;
+        for(let bi=0;bi<3;bi++){
+            const beamActive=(bi >= (3-beams));
+            if(beamActive){
+                X.strokeStyle=`rgba(255,0,0,${laserPulse})`;X.lineWidth=2;
+                X.beginPath();X.moveTo(0,beamYs[bi]);X.lineTo(W,beamYs[bi]);X.stroke();
+                X.strokeStyle=`rgba(255,50,50,${laserPulse*0.3})`;X.lineWidth=6;
+                X.beginPath();X.moveTo(0,beamYs[bi]);X.lineTo(W,beamYs[bi]);X.stroke();
+            }
+        }
+    }
+}
+
+function drawWalls(){
+    if(!G.walls)return;
+    const laserPulse=Math.sin(Date.now()*0.008)*0.3+0.7;
+    for(const w of G.walls){
+        // Pulsating red laser lines
+        const lineSpacing=10;
+        for(let ly=w.y;ly<w.y+w.h;ly+=lineSpacing){
+            X.strokeStyle=`rgba(255,0,0,${laserPulse})`;X.lineWidth=1;
+            X.beginPath();X.moveTo(w.x+w.w/2,ly);X.lineTo(w.x+w.w/2,ly);X.stroke();
+            // Draw as vertical laser beam
+        }
+        // Core beam
+        X.strokeStyle=`rgba(255,0,0,${laserPulse})`;X.lineWidth=2;
+        X.beginPath();X.moveTo(w.x+w.w/2,w.y);X.lineTo(w.x+w.w/2,w.y+w.h);X.stroke();
+        // Outer glow
+        X.strokeStyle=`rgba(255,50,50,${laserPulse*0.3})`;X.lineWidth=6;
+        X.beginPath();X.moveTo(w.x+w.w/2,w.y);X.lineTo(w.x+w.w/2,w.y+w.h);X.stroke();
+        // Wide soft glow
+        X.strokeStyle=`rgba(255,0,0,${laserPulse*0.1})`;X.lineWidth=12;
+        X.beginPath();X.moveTo(w.x+w.w/2,w.y);X.lineTo(w.x+w.w/2,w.y+w.h);X.stroke();
+    }
+}
+
+function drawLevers(){
+    if(!G.levers)return;
+    for(const lv of G.levers){
+        // Base
+        X.fillStyle='#555';X.fillRect(lv.x-4,lv.y-6,8,6);
+        // Lever arm
+        X.strokeStyle=lv.activated?'#00cc66':'#cc4444';X.lineWidth=3;
+        X.beginPath();X.moveTo(lv.x,lv.y-6);
+        if(lv.activated){
+            X.lineTo(lv.x+8,lv.y-18); // pulled
+        } else {
+            X.lineTo(lv.x,lv.y-20); // upright
+        }
+        X.stroke();
+        // Knob
+        X.fillStyle=lv.activated?'#00cc66':'#cc4444';
+        const knobX=lv.activated?lv.x+8:lv.x;
+        const knobY=lv.activated?lv.y-18:lv.y-20;
+        X.beginPath();X.arc(knobX,knobY,3,0,Math.PI*2);X.fill();
+        // Label
+        if(!lv.activated){
+            X.fillStyle='#cc4444';X.font='bold 8px Arial';X.textAlign='center';
+            X.fillText('▲',lv.x,lv.y-24);X.textAlign='left';
+        }
+    }
+}
+
+function drawCoffins(){
+    if(!G.coffins)return;
+    for(const cf of G.coffins){
+        // Dark wooden coffin shape — 90px long
+        X.fillStyle='#3a2a18';
+        X.beginPath();
+        X.moveTo(cf.x+8,cf.y);X.lineTo(cf.x+cf.w-8,cf.y);
+        X.lineTo(cf.x+cf.w,cf.y+6);X.lineTo(cf.x+cf.w-4,cf.y+cf.h);
+        X.lineTo(cf.x+4,cf.y+cf.h);X.lineTo(cf.x,cf.y+6);X.closePath();X.fill();
+        // Lid line
+        X.strokeStyle='#2a1a08';X.lineWidth=1;
+        X.beginPath();X.moveTo(cf.x+4,cf.y+cf.h/2);X.lineTo(cf.x+cf.w-4,cf.y+cf.h/2);X.stroke();
+        // Cross
+        X.fillStyle='#5a4a30';
+        X.fillRect(cf.x+cf.w/2-1,cf.y+3,3,8);
+        X.fillRect(cf.x+cf.w/2-3,cf.y+5,7,3);
+        // Handles
+        X.fillStyle='#6a5a38';
+        X.fillRect(cf.x+15,cf.y+cf.h-3,4,3);
+        X.fillRect(cf.x+cf.w-19,cf.y+cf.h-3,4,3);
+    }
+}
+
+function drawLadders(){
+    X.strokeStyle='#6a5a50';X.lineWidth=3;
+    for(const l of G.ladders){
+        const extTop=l.y-10; // extend above platform
+        // Rails
+        X.beginPath();X.moveTo(l.x,extTop);X.lineTo(l.x,l.y+l.h);X.stroke();
+        X.beginPath();X.moveTo(l.x+18,extTop);X.lineTo(l.x+18,l.y+l.h);X.stroke();
+        // Rungs
+        X.strokeStyle='#5a4a40';X.lineWidth=2;
+        for(let ry=l.y+15;ry<l.y+l.h;ry+=18){
+            X.beginPath();X.moveTo(l.x,ry);X.lineTo(l.x+18,ry);X.stroke();
+        }
+        // Rung above platform
+        X.beginPath();X.moveTo(l.x,extTop+6);X.lineTo(l.x+18,extTop+6);X.stroke();
+        X.strokeStyle='#6a5a50';X.lineWidth=3;
+    }
+}
+
+function drawDoors(){
+    for(const d of G.doors){
+        const bx=d.x,by=d.y;
+        if(img.barrels){
+            X.drawImage(img.barrels,bx-2,by-54,38,54);
+            continue;
+        }
+        const bw=18,bh=18; // barrel dimensions — 3 stacked = 36px = Reggie height
+        // Bottom left barrel
+        X.fillStyle='#1a1a1a';
+        X.beginPath();X.ellipse(bx+bw/2,by-bh/2,bw/2,bh/2,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#222';
+        X.beginPath();X.ellipse(bx+bw/2,by-bh/2,bw/2-2,bh/2-2,0,0,Math.PI*2);X.fill();
+        X.strokeStyle='#444';X.lineWidth=1;
+        X.beginPath();X.ellipse(bx+bw/2,by-bh*0.3,bw/2,2,0,0,Math.PI*2);X.stroke();
+        X.beginPath();X.ellipse(bx+bw/2,by-bh*0.7,bw/2,2,0,0,Math.PI*2);X.stroke();
+        // Bottom right barrel
+        X.fillStyle='#1a1a1a';
+        X.beginPath();X.ellipse(bx+bw+bw/2+2,by-bh/2,bw/2,bh/2,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#222';
+        X.beginPath();X.ellipse(bx+bw+bw/2+2,by-bh/2,bw/2-2,bh/2-2,0,0,Math.PI*2);X.fill();
+        X.strokeStyle='#444';X.lineWidth=1;
+        X.beginPath();X.ellipse(bx+bw+bw/2+2,by-bh*0.3,bw/2,2,0,0,Math.PI*2);X.stroke();
+        X.beginPath();X.ellipse(bx+bw+bw/2+2,by-bh*0.7,bw/2,2,0,0,Math.PI*2);X.stroke();
+        // Middle barrel
+        X.fillStyle='#1a1a1a';
+        X.beginPath();X.ellipse(bx+bw,by-bh-bh/2,bw/2,bh/2,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#222';
+        X.beginPath();X.ellipse(bx+bw,by-bh-bh/2,bw/2-2,bh/2-2,0,0,Math.PI*2);X.fill();
+        X.strokeStyle='#444';X.lineWidth=1;
+        X.beginPath();X.ellipse(bx+bw,by-bh-bh*0.3,bw/2,2,0,0,Math.PI*2);X.stroke();
+        X.beginPath();X.ellipse(bx+bw,by-bh-bh*0.7,bw/2,2,0,0,Math.PI*2);X.stroke();
+        // Top barrel
+        X.fillStyle='#1a1a1a';
+        X.beginPath();X.ellipse(bx+bw,by-bh*2-bh/2,bw/2,bh/2,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#222';
+        X.beginPath();X.ellipse(bx+bw,by-bh*2-bh/2,bw/2-2,bh/2-2,0,0,Math.PI*2);X.fill();
+        X.strokeStyle='#444';X.lineWidth=1;
+        X.beginPath();X.ellipse(bx+bw,by-bh*2-bh*0.3,bw/2,2,0,0,Math.PI*2);X.stroke();
+        X.beginPath();X.ellipse(bx+bw,by-bh*2-bh*0.7,bw/2,2,0,0,Math.PI*2);X.stroke();
+    }
+}
+
+function drawPortals(){
+    if(!G.portals||G.portals.length<2)return;
+    for(let i=0;i<2;i++){
+        const p=G.portals[i];
+        const pulse=Math.sin(Date.now()*0.004+i*3)*0.3+0.7;
+        const colW=8,colH=30,gap=32;
+        const lx=p.x-gap/2-colW;
+        const rx=p.x+gap/2;
+        const cy=p.y-colH;
+        // Left column
+        if(img.column){
+            X.drawImage(img.column,lx,cy,colW,colH);
+        } else {
+            X.fillStyle='#8a8a98';X.fillRect(lx,cy,colW,colH);
+            X.fillStyle='#a0a0b0';X.fillRect(lx,cy,colW,3);
+        }
+        // Right column
+        if(img.column){
+            X.drawImage(img.column,rx,cy,colW,colH);
+        } else {
+            X.fillStyle='#8a8a98';X.fillRect(rx,cy,colW,colH);
+            X.fillStyle='#a0a0b0';X.fillRect(rx,cy,colW,3);
+        }
+        // Central pulsing glow between columns
+        const glowR=10+pulse*4;
+        const glow=X.createRadialGradient(p.x,cy+colH/2,2,p.x,cy+colH/2,glowR);
+        glow.addColorStop(0,`rgba(107,92,200,${pulse*0.6})`);
+        glow.addColorStop(1,'rgba(62,51,136,0)');
+        X.fillStyle=glow;
+        X.beginPath();X.arc(p.x,cy+colH/2,glowR,0,Math.PI*2);X.fill();
+    }
+}
+
+function drawTallMan(){
+    if(G.isCrematorium&&!G.tallManOnConveyor&&!G.tallManFalling)return; // fallen into furnace
+    const tx=G.tallManX,ty=G.tallManY;
+
+    if(G.tallManFalling&&img.tallManFall){
+        X.drawImage(img.tallManFall,tx-26,ty,53,90);
+    } else if(img.tallMan){
+        const tmFeetY=G.isCrematorium?ty+40:90;
+        X.drawImage(img.tallMan,tx-20,tmFeetY-90,40,90);
+    } else {
+        // Tall Man — nearly touches top of canvas, arms at sides
+        const feetY=G.isCrematorium?ty+40:90;
+        const headY=feetY-86;
+        const bodyH=feetY-headY;
+        const bodyW=20;
+
+        // Legs
+        X.fillStyle='#111';
+        X.fillRect(tx-6,feetY-bodyH*0.35,5,bodyH*0.35);
+        X.fillRect(tx+1,feetY-bodyH*0.35,5,bodyH*0.35);
+
+        // Torso — dark suit
+        X.fillStyle='#1a1a1a';
+        X.fillRect(tx-bodyW/2,headY+22,bodyW,bodyH*0.45);
+
+        // Suit jacket lapels
+        X.fillStyle='#111';
+        X.beginPath();
+        X.moveTo(tx,headY+24);X.lineTo(tx-8,headY+40);X.lineTo(tx,headY+50);X.fill();
+        X.beginPath();
+        X.moveTo(tx,headY+24);X.lineTo(tx+8,headY+40);X.lineTo(tx,headY+50);X.fill();
+
+        // Arms — straight down at sides
+        X.fillStyle='#1a1a1a';
+        X.fillRect(tx-bodyW/2-5,headY+26,5,bodyH*0.42);
+        X.fillRect(tx+bodyW/2,headY+26,5,bodyH*0.42);
+
+        // Hands — flesh
+        X.fillStyle='#e8d0b8';
+        X.fillRect(tx-bodyW/2-5,headY+26+bodyH*0.42,5,6);
+        X.fillRect(tx+bodyW/2,headY+26+bodyH*0.42,5,6);
+
+        // White shirt collar
+        X.fillStyle='#ddd';
+        X.fillRect(tx-4,headY+20,8,4);
+
+        // Head
+        X.fillStyle='#e8d8c8';
+        X.beginPath();X.arc(tx,headY+12,11,0,Math.PI*2);X.fill();
+
+        // Hair — blonde/grey, swept back
+        X.fillStyle='#c0a870';
+        X.beginPath();X.arc(tx,headY+7,12,Math.PI*0.65,Math.PI*2.35);X.fill();
+        X.fillRect(tx-12,headY+7,4,12);X.fillRect(tx+8,headY+7,4,12);
+
+        // Dark eyes — menacing
+        X.fillStyle='#111';
+        X.beginPath();X.arc(tx-4,headY+11,2,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(tx+4,headY+11,2,0,Math.PI*2);X.fill();
+
+        // Eyebrows — furrowed
+        X.strokeStyle='#8a7a60';X.lineWidth=1.5;
+        X.beginPath();X.moveTo(tx-7,headY+8);X.lineTo(tx-2,headY+9);X.stroke();
+        X.beginPath();X.moveTo(tx+7,headY+8);X.lineTo(tx+2,headY+9);X.stroke();
+
+        // Frown
+        X.strokeStyle='#aa7766';X.lineWidth=1;
+        X.beginPath();X.arc(tx,headY+16,3,0.2,Math.PI-0.2);X.stroke();
+    }
+}
+
+function drawCollectible(){
+    // Always draw the alcove
+    drawAlcove(G.collectX,G.collectY);
+    if(G.hasKey)return;
+    const cx=G.collectX,cy=G.collectY;
+    // Golden urn with white pulsing glow — sits on bottom of alcove shelf
+    const pulse=Math.sin(Date.now()*0.004)*0.3+0.7;
+    const urnFullW=28;
+    const urnH=32;
+    const shelfY=G.collectY-urnH+12+40-12;
+    const uy=shelfY-urnH;
+
+    // White haze glow behind urn
+    const glowR=18+pulse*6;
+    const glow=X.createRadialGradient(cx,uy+urnH/2,4,cx,uy+urnH/2,glowR);
+    glow.addColorStop(0,`rgba(255,255,255,${pulse*0.5})`);
+    glow.addColorStop(1,'rgba(255,255,255,0)');
+    X.fillStyle=glow;
+    X.beginPath();X.arc(cx,uy+urnH/2,glowR,0,Math.PI*2);X.fill();
+
+    if(img.urn){
+        X.drawImage(img.urn,cx-urnFullW/2,uy,urnFullW,urnH);
+    } else {
+        const urnW=16;
+        // Urn body
+        const gold=X.createLinearGradient(cx-urnW/2,uy,cx+urnW/2,uy);
+        gold.addColorStop(0,'#a08020');gold.addColorStop(0.3,'#d4b860');gold.addColorStop(0.5,'#f0d878');gold.addColorStop(0.7,'#d4b860');gold.addColorStop(1,'#a08020');
+        X.fillStyle=gold;
+        X.beginPath();
+        X.moveTo(cx-urnW*0.3,uy+urnH);
+        X.quadraticCurveTo(cx-urnW*0.5,uy+urnH*0.5,cx-urnW*0.4,uy+urnH*0.2);
+        X.lineTo(cx-urnW*0.2,uy+2);X.lineTo(cx-urnW*0.3,uy);
+        X.lineTo(cx+urnW*0.3,uy);X.lineTo(cx+urnW*0.2,uy+2);
+        X.quadraticCurveTo(cx+urnW*0.5,uy+urnH*0.5,cx+urnW*0.3,uy+urnH);
+        X.closePath();X.fill();
+        // Lid
+        X.fillStyle='#c8a840';
+        X.beginPath();X.ellipse(cx,uy,urnW*0.3,5,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#e0c860';
+        X.beginPath();X.arc(cx,uy-5,4,0,Math.PI*2);X.fill();
+        X.fillStyle='#8a6818';
+        X.fillRect(cx-urnW*0.4,uy+urnH*0.45,urnW*0.8,3);
+    }
+}
+
+function drawAlcove(ax,ay){
+    const aw=36,ah=40;
+    const alx=ax-aw/2,aly=ay-ah+12;
+    // Brown wooden frame
+    X.fillStyle='#5a3a1a';
+    X.fillRect(alx-4,aly-4,aw+8,ah+8);
+    // Arch top
+    X.beginPath();X.arc(ax,aly,aw/2+4,Math.PI,0);X.fill();
+    // Inner frame
+    X.fillStyle='#7a5a2a';
+    X.fillRect(alx-2,aly-2,aw+4,ah+4);
+    X.beginPath();X.arc(ax,aly,aw/2+2,Math.PI,0);X.fill();
+    // Red curtain gradient background
+    const curtain=X.createLinearGradient(alx,aly,alx,aly+ah);
+    curtain.addColorStop(0,'#6a1018');curtain.addColorStop(0.3,'#8a2028');curtain.addColorStop(0.5,'#a02830');curtain.addColorStop(0.7,'#8a2028');curtain.addColorStop(1,'#5a0810');
+    X.fillStyle=curtain;
+    X.fillRect(alx,aly,aw,ah);
+    // Arch interior
+    X.save();
+    X.beginPath();X.arc(ax,aly,aw/2,Math.PI,0);X.clip();
+    X.fillStyle=curtain;X.fillRect(alx,aly-aw/2,aw,aw/2);
+    X.restore();
+    // Curtain folds — subtle vertical lines
+    X.strokeStyle='rgba(0,0,0,0.15)';X.lineWidth=1;
+    for(let fx=alx+6;fx<alx+aw;fx+=8){
+        X.beginPath();X.moveTo(fx,aly);X.lineTo(fx,aly+ah);X.stroke();
+    }
+}
+
+function drawMike(){
+    const mx=G.mikeX,my=G.mikeY;
+    // Full-height alcove for Mike — extends to platform floor
+    const aw=42,ah=68;
+    const alx=mx-aw/2,aly=22;
+    // Brown wooden frame
+    X.fillStyle='#5a3a1a';
+    X.fillRect(alx-4,aly-4,aw+8,ah+8);
+    X.beginPath();X.arc(mx,aly,aw/2+4,Math.PI,0);X.fill();
+    // Inner frame
+    X.fillStyle='#7a5a2a';
+    X.fillRect(alx-2,aly-2,aw+4,ah+4);
+    X.beginPath();X.arc(mx,aly,aw/2+2,Math.PI,0);X.fill();
+    // Red curtain gradient
+    const curtain=X.createLinearGradient(alx,aly,alx,aly+ah);
+    curtain.addColorStop(0,'#6a1018');curtain.addColorStop(0.3,'#8a2028');curtain.addColorStop(0.5,'#a02830');curtain.addColorStop(0.7,'#8a2028');curtain.addColorStop(1,'#5a0810');
+    X.fillStyle=curtain;
+    X.fillRect(alx,aly,aw,ah);
+    X.save();X.beginPath();X.arc(mx,aly,aw/2,Math.PI,0);X.clip();
+    X.fillStyle=curtain;X.fillRect(alx,aly-aw/2,aw,aw/2);X.restore();
+    X.strokeStyle='rgba(0,0,0,0.15)';X.lineWidth=1;
+    for(let fx=alx+6;fx<alx+aw;fx+=8){X.beginPath();X.moveTo(fx,aly);X.lineTo(fx,aly+ah);X.stroke();}
+    if(img.mike){
+        X.drawImage(img.mike,mx-15,90-54,30,54);
+    } else {
+        // Mike — young, denim jacket, standing on floor
+        const mfy=90;
+        X.fillStyle='#4477aa';X.fillRect(mx-10,mfy-38,20,28); // jacket
+        X.fillStyle='#ffccaa';X.beginPath();X.arc(mx,mfy-44,9,0,Math.PI*2);X.fill(); // head
+        X.fillStyle='#6a4a2a'; // hair
+        X.beginPath();X.arc(mx,mfy-48,10,Math.PI*0.6,Math.PI*2.4);X.fill();
+        X.fillStyle='#3355aa';X.fillRect(mx-8,mfy-12,16,12); // jeans
+    }
+    // Red laser lines in front of Mike — disappear when urn is grabbed
+    if(!G.hasKey){
+        const laserPulse=Math.sin(Date.now()*0.008)*0.3+0.7;
+        X.strokeStyle=`rgba(255,0,0,${laserPulse})`;X.lineWidth=1;
+        for(let ly=aly+8;ly<aly+ah;ly+=10){
+            X.beginPath();X.moveTo(alx,ly);X.lineTo(alx+aw,ly);X.stroke();
+        }
+    }
+    // Rescue indicator — pulsing
+    const pulse=Math.sin(Date.now()*0.005)*0.3+0.5;
+    X.fillStyle=`rgba(62,51,136,${pulse*0.3})`;
+    X.beginPath();X.arc(mx,90-42,10,0,Math.PI*2);X.fill();
+    X.textAlign='left';
+}
+
+function drawHemicuda(){
+    if(G.isCrematorium)return;
+    // Parked at bottom-left
+    const cx=60,cy=560;
+    if(img.hemicuda){
+        X.drawImage(img.hemicuda,10,590-60,150,60);
+    } else {
+        // Simple muscle car silhouette — black, 150x60
+        X.fillStyle='#111';
+        X.fillRect(12,554,144,36);
+        X.fillRect(30,540,90,18);
+        // Wheels
+        X.fillStyle='#333';
+        X.beginPath();X.arc(42,590,9,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(132,590,9,0,Math.PI*2);X.fill();
+    }
+}
+
+function drawSpheres(){
+    for(const s of G.spheres){
+        if(img.sphere){
+            const angle=Math.atan2(s.vy,s.vx);
+            X.save();X.translate(s.x,s.y);X.rotate(angle);
+            X.drawImage(img.sphere,-18,-18,36,36);
+            X.restore();
+        } else {
+            // Silver sphere with blades
+            const sg=X.createRadialGradient(s.x-4,s.y-4,3,s.x,s.y,15);
+            sg.addColorStop(0,'#eeeeff');sg.addColorStop(0.5,'#aaaacc');sg.addColorStop(1,'#666688');
+            X.fillStyle=sg;X.beginPath();X.arc(s.x,s.y,15,0,Math.PI*2);X.fill();
+            // Blades — face direction of movement
+            X.strokeStyle='#ccccdd';X.lineWidth=2;
+            const angle=Math.atan2(s.vy,s.vx);
+            for(let b=0;b<3;b++){
+                const a=angle+b*Math.PI*2/3;
+                X.beginPath();X.moveTo(s.x+Math.cos(a)*12,s.y+Math.sin(a)*12);
+                X.lineTo(s.x+Math.cos(a)*20,s.y+Math.sin(a)*20);X.stroke();
+            }
+        }
+    }
+}
+
+function drawDwarves(){
+    const animFrame=Math.floor(Date.now()/200)%2; // toggle every 200ms
+    for(const d of G.dwarves){
+        if(img.dwarf){
+            const dImg=animFrame===0?img.dwarf:(img.dwarf2||img.dwarf);
+            // Flip image based on direction
+            if(d.dir<0){
+                X.save();X.translate(d.x+d.w,d.y);X.scale(-1,1);
+                X.drawImage(dImg,0,0,d.w,d.h);X.restore();
+            } else {
+                X.drawImage(dImg,d.x,d.y,d.w,d.h);
+            }
+        } else {
+            // Hooded dwarf — dark robe, red eyes (30x42)
+            X.fillStyle='#2a1a10';X.fillRect(d.x+3,d.y+12,d.w-6,d.h-12); // robe
+            X.fillStyle='#1a0a08'; // hood
+            X.beginPath();X.arc(d.x+d.w/2,d.y+12,14,Math.PI,0);X.fill();
+            X.fillRect(d.x+d.w/2-14,d.y+12,28,8);
+            // Red eyes
+            X.fillStyle='#ff2200';
+            X.beginPath();X.arc(d.x+d.w/2-5,d.y+15,3,0,Math.PI*2);X.fill();
+            X.beginPath();X.arc(d.x+d.w/2+5,d.y+15,3,0,Math.PI*2);X.fill();
+        }
+    }
+}
+
+function drawGravers(){
+    const animFrame=Math.floor(Date.now()/200)%2;
+    for(const gv of G.gravers){
+        const gx=gv.x,gy=gv.y;
+        if(img.graver){
+            const gImg=animFrame===0?img.graver:(img.graver2||img.graver);
+            if(gv.dir<0){
+                X.save();X.translate(gx+gv.w,gy);X.scale(-1,1);
+                X.drawImage(gImg,0,0,gv.w,gv.h);X.restore();
+            } else {
+                X.drawImage(gImg,gx,gy,gv.w,gv.h);
+            }
+        } else {
+        // Boots
+        X.fillStyle='#2a1a0a';
+        X.fillRect(gx+2,gy+gv.h-6,8,6);X.fillRect(gx+gv.w-10,gy+gv.h-6,8,6);
+        // Legs — brown pants
+        X.fillStyle='#5a4020';
+        X.fillRect(gx+4,gy+gv.h-16,6,12);X.fillRect(gx+gv.w-10,gy+gv.h-16,6,12);
+        // Torso — brown jacket
+        X.fillStyle='#6a5030';
+        X.fillRect(gx+2,gy+10,gv.w-4,gv.h-24);
+        // Arms
+        X.fillRect(gx-3,gy+12,5,14);X.fillRect(gx+gv.w-2,gy+12,5,14);
+        // Shovel/pick — held in one hand
+        X.fillStyle='#8a7050';
+        X.fillRect(gx+gv.w+2,gy+8,3,20); // handle
+        X.fillStyle='#888';
+        X.fillRect(gx+gv.w,gy+6,7,4); // blade
+        // Head — gas mask
+        X.fillStyle='#4a4a3a';
+        X.beginPath();X.arc(gx+gv.w/2,gy+6,8,0,Math.PI*2);X.fill();
+        // Gas mask details
+        X.fillStyle='#2a2a20';
+        X.beginPath();X.arc(gx+gv.w/2,gy+8,5,0,Math.PI*2);X.fill();
+        // Eye lenses — round, dark
+        X.fillStyle='#111';
+        X.beginPath();X.arc(gx+gv.w/2-3,gy+5,2.5,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(gx+gv.w/2+3,gy+5,2.5,0,Math.PI*2);X.fill();
+        // Lens glint
+        X.fillStyle='rgba(200,200,150,0.3)';
+        X.beginPath();X.arc(gx+gv.w/2-3,gy+4,1,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(gx+gv.w/2+3,gy+4,1,0,Math.PI*2);X.fill();
+        // Filter canister
+        X.fillStyle='#3a3a2a';
+        X.fillRect(gx+gv.w/2-3,gy+10,6,4);
+        // HP indicator — small dots
+        X.fillStyle='#ff4444';
+        for(let h=0;h<gv.hp;h++){
+            X.beginPath();X.arc(gx+gv.w/2-4+h*4,gy-4,2,0,Math.PI*2);X.fill();
+        }
+        } // end else (fallback drawing)
+    }
+}
+
+function drawHearse(){
+    if(!G.hearse)return;
+    const hr=G.hearse;
+    if(img.hearse){
+        if(hr.speed<0){
+            // Flip horizontally when driving left
+            X.save();X.translate(hr.x+hr.w,hr.y);X.scale(-1,1);
+            X.drawImage(img.hearse,0,0,hr.w,hr.h);X.restore();
+        } else {
+            X.drawImage(img.hearse,hr.x,hr.y,hr.w,hr.h);
+        }
+    } else {
+        X.fillStyle='#111';X.fillRect(hr.x,hr.y+10,hr.w,hr.h-20);
+        X.fillStyle='#1a1a1a';X.fillRect(hr.x+10,hr.y,hr.w-30,14);
+        X.fillStyle='#333';
+        X.beginPath();X.arc(hr.x+30,hr.y+hr.h-4,8,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(hr.x+hr.w-30,hr.y+hr.h-4,8,0,Math.PI*2);X.fill();
+        X.fillStyle='#ffee88';
+        const front=hr.speed>0?hr.x+hr.w:hr.x;
+        X.beginPath();X.arc(front,hr.y+hr.h/2,4,0,Math.PI*2);X.fill();
+    }
+}
+
+function drawShots(){
+    for(const s of G.shots){
+        X.fillStyle='#ffffff';X.fillRect(s.x,s.y,s.w,s.h);
+        X.fillStyle='#dddddd';X.fillRect(s.x+2,s.y+1,s.w-4,2);
+    }
+}
+
+function drawPlayer(){
+    if(G.invincible>0&&Math.floor(G.invincible/4)%2===0)return; // blink
+    const animFrame=Math.floor(Date.now()/150)%2;
+    if(G.climbing&&img.reggieClimb){
+        const climbFrame=Math.floor(Date.now()/200)%2;
+        if(climbFrame===0){
+            X.drawImage(img.reggieClimb,G.px-5,G.py-3,G.pw+10,G.ph+6);
+        } else {
+            // Flip horizontally for second climb frame
+            X.save();X.translate(G.px+G.pw/2,G.py);X.scale(-1,1);
+            X.drawImage(img.reggieClimb,-G.pw/2-5,-3,G.pw+10,G.ph+6);X.restore();
+        }
+    } else if(img.reggieLeft&&img.reggieRight){
+        const moving=G.keys.left||G.keys.right;
+        const frameImg=moving?(animFrame===0?img.reggieLeft:img.reggieRight):img.reggieLeft;
+        if(G.pdir<0){
+            // Flip horizontally for leftward movement
+            X.save();X.translate(G.px+G.pw/2,G.py);X.scale(-1,1);
+            X.drawImage(frameImg,-G.pw/2-5,-3,G.pw+10,G.ph+6);X.restore();
+        } else {
+            X.drawImage(frameImg,G.px-5,G.py-3,G.pw+10,G.ph+6);
+        }
+    } else {
+        // Reggie — flannel shirt, jeans, shotgun (scaled 50% taller)
+        const walkFrame=Math.floor(Date.now()/150)%2; // toggle every 150ms
+        const moving=G.keys.left||G.keys.right;
+        X.fillStyle='#cc4444'; // flannel
+        X.fillRect(G.px+3,G.py+14,G.pw-6,24);
+        // Plaid pattern
+        X.fillStyle='rgba(0,0,0,0.2)';
+        X.fillRect(G.px+3,G.py+20,G.pw-6,2);X.fillRect(G.px+3,G.py+28,G.pw-6,2);
+        X.fillRect(G.px+10,G.py+14,2,24);X.fillRect(G.px+18,G.py+14,2,24);
+        // Jeans / legs — animated when moving
+        X.fillStyle='#3355aa';
+        if(moving&&!G.climbing){
+            if(walkFrame===0){
+                // Left leg forward, right leg back
+                X.fillRect(G.px+5,G.py+38,8,16); // left leg
+                X.fillRect(G.px+G.pw-13,G.py+36,8,14); // right leg (shorter, back)
+                // Boots
+                X.fillStyle='#3a2a1a';
+                X.fillRect(G.px+3,G.py+52,10,4); // left boot forward
+                X.fillRect(G.px+G.pw-14,G.py+48,9,4); // right boot back
+            } else {
+                // Right leg forward, left leg back
+                X.fillRect(G.px+G.pw-13,G.py+38,8,16); // right leg
+                X.fillRect(G.px+5,G.py+36,8,14); // left leg (shorter, back)
+                // Boots
+                X.fillStyle='#3a2a1a';
+                X.fillRect(G.px+G.pw-14,G.py+52,10,4); // right boot forward
+                X.fillRect(G.px+3,G.py+48,9,4); // left boot back
+            }
+        } else {
+            // Standing still or climbing — legs together
+            X.fillRect(G.px+5,G.py+38,G.pw-10,16);
+            X.fillStyle='#3a2a1a';
+            X.fillRect(G.px+5,G.py+52,G.pw-10,4); // boots
+        }
+        // Head
+        X.fillStyle='#ffccaa';X.beginPath();X.arc(G.px+G.pw/2,G.py+8,9,0,Math.PI*2);X.fill();
+        // Hair
+        X.fillStyle='#aa7733';
+        X.beginPath();X.arc(G.px+G.pw/2,G.py+4,9,Math.PI*0.7,Math.PI*2.3);X.fill();
+        // Eyes
+        X.fillStyle='#333';
+        const eyeX=G.pdir>0?G.px+G.pw/2+3:G.px+G.pw/2-3;
+        X.beginPath();X.arc(eyeX,G.py+7,1.5,0,Math.PI*2);X.fill();
+        // Shotgun
+        X.fillStyle='#5a3a1a';
+        const gunX=G.pdir>0?G.px+G.pw:G.px-12;
+        X.fillRect(gunX,G.py+24,12,3);
+        // Arms
+        X.fillStyle='#cc4444';
+        if(G.pdir>0){
+            X.fillRect(G.px+G.pw-4,G.py+16,6,12); // right arm holding gun
+        } else {
+            X.fillRect(G.px-2,G.py+16,6,12); // left arm holding gun
+        }
+    }
+}
+
+function drawParticles(){
+    for(const p of G.particles){
+        X.globalAlpha=p.life/35;X.fillStyle=p.color;
+        const sz=p.size||4;
+        X.beginPath();X.arc(p.x,p.y,sz/2,0,Math.PI*2);X.fill();
+    }
+    X.globalAlpha=1;
+}
+
+function drawHUD(){
+    // Key/urn status or lever status
+    if(G.isCrematorium&&G.levers){
+        // Flashing instruction under lasers
+        const activated=G.levers.filter(l=>l.activated).length;
+        const total=G.levers.length;
+        if(activated<total){
+            const leverFlash=Math.sin(Date.now()*0.006)*0.4+0.6;
+            X.globalAlpha=leverFlash;
+            X.fillStyle='#fff';X.font='bold 12px Arial';X.textAlign='center';
+            X.fillText('PULL LEVERS TO',W/2,130);
+            X.fillText('DEACTIVATE LASERS!',W/2,144);
+            X.globalAlpha=1;X.textAlign='left';
+        } else if(G.tallManOnConveyor){
+            const burnFlash=Math.sin(Date.now()*0.008)*0.4+0.6;
+            X.globalAlpha=burnFlash;
+            X.fillStyle='#ff4400';X.font='bold 14px Arial';X.textAlign='center';
+            X.fillText('THE TALL MAN FALLS!',W/2,130);
+            X.globalAlpha=1;X.textAlign='left';
+        }
+    } else {
+        const urnFlash=Math.sin(Date.now()*0.006)*0.4+0.6;
+        X.globalAlpha=urnFlash;
+        X.fillStyle='#fff';X.font='bold 12px Arial';X.textAlign='center';
+        X.fillText(G.hasKey?'RESCUE MIKE!':'SMASH THE URN',G.mikeX,G.mikeY+80);
+        X.fillText(G.hasKey?'':'TO FREE MIKE!',G.mikeX,G.mikeY+94);
+        X.globalAlpha=1;
+        X.textAlign='left';
+    }
+    X.textAlign='left';
+}
+
+function drawRescue(){
+    if(G.rescuePause<=0)return;
+    X.fillStyle='rgba(0,0,0,0.4)';X.fillRect(0,0,W,H);
+    X.font='bold 36px Arial';X.textAlign='center';
+    if(G.isCrematorium){
+        X.fillStyle='#ff8844';
+        X.fillText('CREMATED!',W/2,H/2-10);
+        X.fillStyle='#fff';X.font='bold 16px Arial';
+        X.fillText('+2000 pts',W/2,H/2+20);
+    } else {
+        X.fillStyle='#6b5cc8';
+        X.fillText('RESCUED!',W/2,H/2-10);
+        X.fillStyle='#fff';X.font='bold 16px Arial';
+        X.fillText('+1000 pts',W/2,H/2+20);
+    }
+    X.textAlign='left';
+}
+
+function drawGameOver(){
+    if(!G.over)return;
+    X.fillStyle='rgba(0,0,0,0.8)';X.fillRect(0,0,W,H);
+    X.fillStyle='#6b5cc8';X.font='bold 38px Arial';X.textAlign='center';
+    X.fillText('GAME OVER',W/2,H/2-40);
+    X.fillStyle='#fff';X.font='bold 20px Arial';
+    X.fillText('Score: '+G.score,W/2,H/2);
+    X.fillText('Level: '+G.level,W/2,H/2+30);
+    X.fillStyle='#aaa';X.font='16px Arial';
+    X.fillText('Tap or press R to restart',W/2,H/2+70);
+    X.textAlign='left';
+}
+</script>
+<script>
+// ===== INPUT =====
+function mInput(action){
+    if(!G.run||G.over)return;
+    if(action==='left')G.keys.left=true;
+    if(action==='right')G.keys.right=true;
+    if(action==='up')G.keys.up=true;
+    if(action==='down')G.keys.down=true;
+    if(action==='jump')G.keys.jump=true;
+    if(action==='shoot')G.keys.shoot=true;
+    // Auto-release mobile keys after short delay
+    setTimeout(()=>{
+        if(action==='jump')G.keys.jump=false;
+        if(action==='shoot')G.keys.shoot=false;
+    },100);
+}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft')G.keys.left=true;
+    if(e.key==='ArrowRight')G.keys.right=true;
+    if(e.key==='ArrowUp')G.keys.up=true;
+    if(e.key==='ArrowDown')G.keys.down=true;
+    if(e.key===' '){e.preventDefault();if(!G.run&&!G.over)go();}
+    if(e.key==='x'||e.key==='X')G.keys.shoot=true;
+    if(e.key==='z'||e.key==='Z')G.keys.jump=true;
+    if(e.key==='r'||e.key==='R'){if(G.over){initGame();G.run=true;SS.classList.add('hidden');startM();}}
+    if(e.key==='q'||e.key==='Q'){stopM();initGame();SS.classList.remove('hidden');}
+    if(e.key==='n'||e.key==='N'){if(G.run&&!G.over)nextLevel();}
+});
+document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft')G.keys.left=false;
+    if(e.key==='ArrowRight')G.keys.right=false;
+    if(e.key==='ArrowUp')G.keys.up=false;
+    if(e.key==='ArrowDown')G.keys.down=false;
+    if(e.key==='x'||e.key==='X')G.keys.shoot=false;
+    if(e.key==='z'||e.key==='Z')G.keys.jump=false;
+});
+
+// Touch hold for mobile d-pad
+document.querySelectorAll('#dpad button').forEach(btn=>{
+    const cls=btn.className;
+    btn.addEventListener('touchstart',e=>{e.preventDefault();
+        if(cls.includes('up'))G.keys.up=true;
+        if(cls.includes('down'))G.keys.down=true;
+        if(cls.includes('left'))G.keys.left=true;
+        if(cls.includes('right'))G.keys.right=true;
+    },{passive:false});
+    btn.addEventListener('touchend',e=>{e.preventDefault();
+        if(cls.includes('up'))G.keys.up=false;
+        if(cls.includes('down'))G.keys.down=false;
+        if(cls.includes('left'))G.keys.left=false;
+        if(cls.includes('right'))G.keys.right=false;
+    },{passive:false});
+});
+
+// ===== GAME LOOP =====
+let lastTime=0,dt=1;
+function gameLoop(timestamp){
+    if(lastTime>0){
+        const elapsed=timestamp-lastTime;
+        dt=Math.min(elapsed/16.667,3); // 60fps baseline, cap at 3x to prevent huge jumps
+    }
+    lastTime=timestamp;
+    update();draw();requestAnimationFrame(gameLoop);
+}
+const SS=document.getElementById('start-screen');
+function go(){if(!G.run&&!G.over){G.run=true;G.keys={};SS.classList.add('hidden');startM();
+    if('ontouchstart' in window)document.getElementById('controls').style.display='block';}}
+SS.addEventListener('click',go);
+SS.addEventListener('touchstart',e=>{e.preventDefault();go();},{passive:false});
+C.addEventListener('click',()=>{if(G.over){initGame();G.run=true;G.keys={};SS.classList.add('hidden');startM();}});
+C.addEventListener('touchstart',e=>{e.preventDefault();
+    if(G.over){initGame();G.run=true;G.keys={};SS.classList.add('hidden');startM();}
+},{passive:false});
+
+async function init(){
+    await Promise.all([
+        li('boxArt',A.boxArtImage),li('reggieLeft',A.reggieLeft),li('reggieRight',A.reggieRight),
+        li('reggieClimb',A.reggieClimb),li('mike',A.mikeImage),li('lock',A.lockImage),li('tallMan',A.tallManImage),li('tallManFall',A.tallManFallImage),
+        li('sphere',A.sphereImage),li('dwarf',A.dwarfImage),li('dwarf2',A.dwarfImage2),li('hearse',A.hearseImage),
+        li('barrels',A.barrelImage),li('hemicuda',A.hemicudaImage),li('column',A.columnImage),li('topTierBg',A.topTierBg),li('urn',A.urnImage),
+        li('graver',A.graverImage),li('graver2',A.graverImage2),
+    ]);
+    if(img.boxArt){document.getElementById('box-art').src=A.boxArtImage;
+        document.getElementById('box-art-container').classList.remove('hidden');
+        SS.classList.add('has-box-art');}
+    ls('shotgun',A.shotgunBlast);ls('sphereDestroy',A.sphereDestroy);
+    ls('dwarfDestroy',A.dwarfDestroy);ls('graverDestroy',A.graverDestroy);ls('death',A.playerDeath);
+    if(snd.dwarfDestroy)snd.dwarfDestroy.volume=0.9;
+    ls('rescue',A.rescueSound);ls('level',A.levelSound);ls('hearse',A.hearseSound);
+    ls('dwarfSpawn',A.dwarfSpawn);ls('sphereSpawn',A.sphereSpawn);ls('graverSpawn',A.graverSpawn);
+    ls('gameover',A.gameoverSound);ls('teleport',A.teleportSound);ls('jump',A.jumpSound);
+    ls('tallManFall',A.tallManFallSound);ls('tallManBurn',A.tallManBurnSound);ls('lever',A.leverSound);
+    if(snd.jump)snd.jump.volume=0.4;
+    if(A.backgroundMusic){music=new Audio(A.backgroundMusic);music.loop=true;music.volume=0.5;}
+    initGame();gameLoop();
+}
+init();
+</script>
+</html>
