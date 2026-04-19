@@ -426,6 +426,9 @@ function update(){
         if(K.down)G.py+=CLIMB_SPD*dt;
         if(G.py<lad.y-G.ph-10)G.py=lad.y-G.ph-10;
         if(G.py+G.ph>lad.y+lad.h)G.py=lad.y+lad.h-G.ph;
+    } else if(G.climbing&&lad&&!K.left&&!K.right&&!K.jump){
+        // Stay on ladder — idle hold
+        G.pvy=0;
     } else {
         G.climbing=false;
     }
