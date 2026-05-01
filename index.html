@@ -14,14 +14,14 @@
 <meta name="twitter:title" content="Phantasm: Silver Spheres — A Dosswerks Arcade Game">
 <meta name="twitter:description" content="Navigate the mausoleum, blast sentinel spheres and dwarf servants, and rescue Mike from the Tall Man in this retro arcade platformer.">
 <meta name="twitter:image" content="https://dosswerks.github.io/phantasm/assets/box-art.png">
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" async></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a0a;display:flex;flex-direction:column;align-items:center;min-height:100vh;font-family:Arial,Helvetica,sans-serif;font-weight:bold;color:#fff;overflow-x:hidden;overflow-y:auto;-webkit-user-select:none;user-select:none}
-#ui{width:480px;max-width:100vw;display:flex;justify-content:space-between;padding:8px 10px;font-size:15px;background:#1a0a1a;border-bottom:2px solid #3e3388}
-#game-wrapper{position:relative;width:480px;max-width:100vw;border:2px solid #3e3388;border-top:none;overflow:hidden}
+#ui{width:480px;max-width:100vw;display:flex;justify-content:space-between;padding:8px 10px;font-size:15px;background:#1a0a0a;border-bottom:2px solid #8b1a1a}
+#game-wrapper{position:relative;width:480px;max-width:100vw;border:2px solid #8b1a1a;border-top:none;overflow:hidden}
 canvas{display:block;width:100%;height:auto;touch-action:none}
-#controls{width:480px;max-width:100vw;display:none;background:#1a0a1a;padding:10px;border:2px solid #3e3388;border-top:none;touch-action:manipulation;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#controls{width:480px;max-width:100vw;display:none;background:#1a0a0a;padding:10px;border:2px solid #8b1a1a;border-top:none;touch-action:manipulation;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 #ctrl-layout{display:flex;justify-content:space-between;align-items:center;touch-action:manipulation}
 #dpad{position:relative;width:150px;height:150px}
 #dpad button{position:absolute;width:46px;height:46px;border:none;border-radius:50%;background:radial-gradient(circle at 35% 30%,#555,#1a1a1a 50%,#000 100%);box-shadow:0 2px 6px rgba(0,0,0,0.8),inset 0 1px 2px rgba(255,255,255,0.15);cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;padding:0}
@@ -38,7 +38,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 #action-btns .fire-btn{background:radial-gradient(circle at 35% 28%,#ff6666,#cc2222 35%,#991111 55%,#550808 100%);box-shadow:0 2px 8px rgba(0,0,0,0.7),inset 0 1px 3px rgba(255,100,100,0.4);color:#ffcccc;text-shadow:0 1px 2px rgba(0,0,0,0.5)}
 #start-screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;background:#0a0a0a;z-index:10;cursor:pointer;padding-bottom:20px}
 #start-screen.has-box-art{gap:0;padding-bottom:0}
-#start-screen h1{font-size:28px;color:#fff;text-shadow:0 0 20px rgba(62,51,136,0.6)}
+#start-screen h1{font-size:28px;color:#fff;text-shadow:0 0 20px rgba(139,26,26,0.6)}
 #start-screen h2{font-size:14px;color:#888;font-weight:normal;margin-top:4px}
 #start-screen p{font-size:13px;color:#aaa;text-align:center;margin:4px 0}
 #box-art-container{position:relative;width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#0a0a0a}
@@ -48,7 +48,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 #start-screen.has-box-art p:nth-child(4){bottom:70px;left:0}
 #start-screen.has-box-art p:last-child{bottom:30px;left:0}
 .has-box-art #splash-title,.has-box-art #splash-sub{display:none}
-.start-hint{font-size:18px!important;font-weight:bold;color:#3e3388!important;animation:flash 1s ease-in-out infinite}
+.start-hint{font-size:18px!important;font-weight:bold;color:#8b1a1a!important;animation:flash 1s ease-in-out infinite}
 @keyframes flash{0%,100%{opacity:1}50%{opacity:0.2}}
 .hidden{display:none!important}
 @media(max-width:500px){#controls{display:block}#ui{font-size:13px}}
@@ -498,8 +498,8 @@ function update(){
             if(Math.abs(G.px+G.pw/2-portal.x)<20&&Math.abs(G.py+G.ph-portal.y)<8){
                 G.px=other.x-G.pw/2;G.py=other.y-G.ph;
                 G.invincible=Math.max(G.invincible,30);
-                addParticles(portal.x,portal.y-20,'#6b5cc8',10);
-                addParticles(other.x,other.y-20,'#6b5cc8',10);
+                addParticles(portal.x,portal.y-20,'#cc3333',10);
+                addParticles(other.x,other.y-20,'#cc3333',10);
                 ps('teleport');
                 K.up=false;
                 break;
@@ -526,7 +526,7 @@ function update(){
     // Shot cooldown
     if(G.shotCooldown>0)G.shotCooldown-=dt;
     if(K.shoot&&G.shotCooldown<=0){
-        G.shots.push({x:G.px+G.pw/2,y:G.py+G.ph/2-8,dir:G.pdir,w:12,h:4,life:40});
+        G.shots.push({x:G.px+G.pw/2,y:G.py+G.ph/2-12,dir:G.pdir,w:12,h:4,life:40});
         G.shotCooldown=SHOT_COOLDOWN;
         ps('shotgun');
     }
@@ -828,7 +828,7 @@ function update(){
     if(G.hasKey&&G.rescuePause<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:G.mikeX-10,y:G.mikeY-10,w:30,h:40})){
         G.rescuePause=150; // 2.5 second pause
         ps('rescue');
-        addParticles(G.mikeX,G.mikeY,'#6b5cc8',15);
+        addParticles(G.mikeX,G.mikeY,'#cc3333',15);
     }
 
     // === Extra life ===
@@ -915,7 +915,7 @@ function draw(){
 
     // Level announce
     if(G.levelAnnounce>0){
-        X.fillStyle='#6b5cc8';X.font='bold 44px Arial';X.textAlign='center';
+        X.fillStyle='#cc3333';X.font='bold 44px Arial';X.textAlign='center';
         X.fillText('LEVEL '+G.level,W/2,H/2-30);
         // Level-specific messages
         const lvlMod=((G.level-1)%5)+1;
@@ -1241,8 +1241,8 @@ function drawPortals(){
         // Central pulsing glow between columns
         const glowR=10+pulse*4;
         const glow=X.createRadialGradient(p.x,cy+colH/2,2,p.x,cy+colH/2,glowR);
-        glow.addColorStop(0,`rgba(107,92,200,${pulse*0.6})`);
-        glow.addColorStop(1,'rgba(62,51,136,0)');
+        glow.addColorStop(0,`rgba(180,40,40,${pulse*0.6})`);
+        glow.addColorStop(1,'rgba(139,26,26,0)');
         X.fillStyle=glow;
         X.beginPath();X.arc(p.x,cy+colH/2,glowR,0,Math.PI*2);X.fill();
     }
@@ -1436,7 +1436,7 @@ function drawMike(){
     }
     // Rescue indicator — pulsing
     const pulse=Math.sin(Date.now()*0.005)*0.3+0.5;
-    X.fillStyle=`rgba(62,51,136,${pulse*0.3})`;
+    X.fillStyle=`rgba(139,26,26,${pulse*0.3})`;
     X.beginPath();X.arc(mx,90-42,10,0,Math.PI*2);X.fill();
     X.textAlign='left';
 }
@@ -1726,7 +1726,7 @@ function drawRescue(){
         X.fillStyle='#fff';X.font='bold 16px Arial';
         X.fillText('+2000 pts',W/2,H/2+20);
     } else {
-        X.fillStyle='#6b5cc8';
+        X.fillStyle='#cc3333';
         X.fillText('RESCUED!',W/2,H/2-10);
         X.fillStyle='#fff';X.font='bold 16px Arial';
         X.fillText('+1000 pts',W/2,H/2+20);
@@ -1737,7 +1737,7 @@ function drawRescue(){
 function drawGameOver(){
     if(!G.over)return;
     X.fillStyle='rgba(0,0,0,0.8)';X.fillRect(0,0,W,H);
-    X.fillStyle='#6b5cc8';X.font='bold 38px Arial';X.textAlign='center';
+    X.fillStyle='#cc3333';X.font='bold 38px Arial';X.textAlign='center';
     X.fillText('GAME OVER',W/2,H/2-40);
     X.fillStyle='#fff';X.font='bold 20px Arial';
     X.fillText('Score: '+G.score,W/2,H/2);
@@ -1866,11 +1866,19 @@ init();
 </script>
 <script>
 (function(){
-    var qr = qrcode(0, 'L');
-    qr.addData('https://www.paypal.com/donate/?hosted_button_id=HDD77QKGC6XXN');
-    qr.make();
-    var el = document.getElementById('qr-code');
-    if (el) el.innerHTML = qr.createSvgTag({cellSize:2, margin:0});
+    function renderQR(){
+        if(typeof qrcode==='undefined')return;
+        var qr = qrcode(0, 'L');
+        qr.addData('https://www.paypal.com/donate/?hosted_button_id=HDD77QKGC6XXN');
+        qr.make();
+        var el = document.getElementById('qr-code');
+        if (el) el.innerHTML = qr.createSvgTag({cellSize:2, margin:0});
+    }
+    if(typeof qrcode!=='undefined') renderQR();
+    else{
+        var s=document.querySelector('script[src*="qrcode"]');
+        if(s) s.addEventListener('load',renderQR);
+    }
 })();
 </script>
 </html>
