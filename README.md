@@ -79,7 +79,15 @@ Each level features:
 
 ### Architecture
 
-Single-file HTML5 Canvas game with no external dependencies. All game logic, rendering, audio, and input handling in one `index.html`.
+Single-file HTML5 Canvas game. All game logic, rendering, audio, and input handling in one `index.html`. The only external dependency is the `qrcode-generator` library loaded via CDN for the tip jar QR code.
+
+### Social Sharing
+
+Open Graph and Twitter Card meta tags are included for rich link previews when sharing. The OG image points to `assets/box-art.png` on the GitHub Pages URL.
+
+### Tip Jar
+
+A PayPal donation form with an SVG tip jar icon and auto-generated QR code appears below the game footer, matching the standard pattern used across all Dosswerks Arcade games.
 
 ### Asset System
 
@@ -90,22 +98,25 @@ const A = {
     reggieRight: 'assets/reggie-right.png',
     reggieClimb: 'assets/reggie-climb.png',
     mikeImage: 'assets/mike.png',
+    lockImage: 'assets/lock.png',
     tallManImage: 'assets/tallman.png',
     tallManFallImage: 'assets/tall-man-fall.png',
     sphereImage: 'assets/sphere.png',
     dwarfImage: 'assets/dwarf1.png',
     dwarfImage2: 'assets/dwarf2.png',
+    hearseImage: 'assets/hearse.png',
     graverImage: 'assets/graver1.png',
     graverImage2: 'assets/graver2.png',
-    hearseImage: 'assets/hearse.png',
+    barrelImage: 'assets/barrels.png',
     hemicudaImage: 'assets/hemicuda.png',
     columnImage: 'assets/column.png',
+    topTierBg: 'assets/top-tier-bg.png',
+    urnImage: 'assets/urn.png',
     shotgunBlast: 'assets/shotgun.mp3',
     sphereDestroy: 'assets/sphere-destroy.mp3',
     dwarfDestroy: 'assets/dwarf-destroy.mp3',
     graverDestroy: 'assets/graver-destroy.mp3',
     playerDeath: 'assets/death.mp3',
-    gameoverSound: 'assets/gameover.mp3',
     rescueSound: 'assets/rescue.mp3',
     levelSound: 'assets/level.mp3',
     hearseSound: 'assets/hearse.mp3',
@@ -131,13 +142,18 @@ const A = {
 | Reggie Right | 32 × 40 px | PNG w/ transparency | Facing right |
 | Reggie Climb | 32 × 40 px | PNG w/ transparency | Climbing ladder |
 | Mike | 24 × 36 px | PNG w/ transparency | Captive in alcove |
+| Lock | — | PNG w/ transparency | Lock icon for urn alcove |
 | Tall Man | 40 × 70 px | PNG w/ transparency | Towering over top level |
+| Tall Man Fall | 40 × 70 px | PNG w/ transparency | Tall Man falling animation |
 | Sphere | 24 × 24 px | PNG w/ transparency | Silver sentinel sphere |
-| Dwarf | 20 × 28 px | PNG w/ transparency | Hooded servant |
-| Graver | 24 × 54 px | PNG w/ transparency | Gas mask zombie with shovel (2 frames) |
+| Dwarf (2 frames) | 20 × 28 px | PNG w/ transparency | Hooded servant |
+| Graver (2 frames) | 24 × 54 px | PNG w/ transparency | Gas mask zombie with shovel |
 | Hearse | 70 × 24 px | PNG w/ transparency | Black hearse |
+| Barrels | — | PNG w/ transparency | Barrel stack spawn points |
 | Hemicuda | 100 × 40 px | PNG w/ transparency | Parked muscle car |
 | Column | 16 × 50 px | PNG w/ transparency | Silver column |
+| Top Tier BG | — | PNG | Mausoleum crypt wall background |
+| Urn | — | PNG w/ transparency | Golden urn to smash |
 
 ### Sound Specs
 
@@ -155,7 +171,6 @@ const A = {
 | dwarf-spawn | 0.2–0.4 sec | MP3 | Dwarf appears from barrels |
 | sphere-spawn | 0.2–0.4 sec | MP3 | Sphere enters screen |
 | graver-spawn | 0.3–0.5 sec | MP3 | Graver walks on from edge |
-| gameover | 1.0–2.0 sec | MP3 | Game over |
 | teleport | 0.2–0.4 sec | MP3 | Portal teleport |
 | jump | 0.1–0.3 sec | MP3 | Reggie jumps |
 | tallman-fall | 0.5–1.0 sec | MP3 | Tall Man falling |
@@ -171,40 +186,43 @@ phantasm/
   story.html
   README.md
   assets/
+    barrels.png
     box-art.png
-    reggie-left.png
-    reggie-right.png
-    reggie-climb.png
-    mike.png
-    tallman.png
-    tall-man-fall.png
-    sphere.png
+    column.png
+    death.mp3
+    dwarf-destroy.mp3
+    dwarf-spawn.mp3
     dwarf1.png
     dwarf2.png
+    gameover.mp3
+    graver-destroy.mp3
+    graver-spawn.mp3
     graver1.png
     graver2.png
+    hearse.mp3
     hearse.png
     hemicuda.png
-    column.png
+    jump.mp3
+    level.mp3
+    lever.mp3
+    lock.png
+    mike.png
+    music.mp3
+    reggie-climb.png
+    reggie-left.png
+    reggie-right.png
+    rescue.mp3
     shotgun.mp3
     sphere-destroy.mp3
-    dwarf-destroy.mp3
-    graver-destroy.mp3
-    death.mp3
-    gameover.mp3
-    rescue.mp3
-    level.mp3
-    hearse.mp3
-    dwarf-spawn.mp3
     sphere-spawn.mp3
-    graver-spawn.mp3
-    gameover.mp3
-    teleport.mp3
-    jump.mp3
-    tallman-fall.mp3
+    sphere.png
+    tall-man-fall.png
     tallman-burn.mp3
-    lever.mp3
-    music.mp3
+    tallman-fall.mp3
+    tallman.png
+    teleport.mp3
+    top-tier-bg.png
+    urn.png
 ```
 
 ---
@@ -217,4 +235,6 @@ Game engine and code: Built with Kiro AI-assisted development
 
 Based on characters and concepts from the Phantasm film franchise.
 
-Hosted on GitHub Pages
+Hosted on [GitHub Pages](https://dosswerks.github.io/phantasm/)
+
+Live on [Dosswerks Arcade](https://dosswerks.github.io/arcade/)
