@@ -526,7 +526,7 @@ function update(){
     // Shot cooldown
     if(G.shotCooldown>0)G.shotCooldown-=dt;
     if(K.shoot&&G.shotCooldown<=0){
-        G.shots.push({x:G.px+G.pw/2,y:G.py+G.ph/2-4,dir:G.pdir,w:12,h:4,life:40});
+        G.shots.push({x:G.px+G.pw/2,y:G.py+G.ph/2-6,dir:G.pdir,w:12,h:4,life:40});
         G.shotCooldown=SHOT_COOLDOWN;
         ps('shotgun');
     }
