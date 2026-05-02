@@ -167,7 +167,7 @@ const W=480,H=600;
 const img={},snd={};
 function li(k,s){return new Promise(r=>{if(!s)return r();const i=new Image();i.onload=()=>{img[k]=i;r()};i.onerror=()=>r();i.src=s})}
 function ls(k,s){if(!s)return;snd[k]=new Audio(s);snd[k].volume=0.6}
-function ps(k){if(!snd[k])return;snd[k].currentTime=0;snd[k].play().catch(()=>{});}
+function ps(k){if(!snd[k]||G.attractMode)return;snd[k].currentTime=0;snd[k].play().catch(()=>{});}
 let music=null;
 function startM(){if(music&&music.paused)music.play().catch(()=>{})}
 function stopM(){if(music){music.pause();music.currentTime=0}}
@@ -288,6 +288,10 @@ function generateCrematorium(lvl){
 let G={};
 const GRAVITY=0.5,JUMP_VEL=-7.5,MOVE_SPD=2.5,CLIMB_SPD=2,SHOT_SPD=6,SHOT_COOLDOWN=30;
 
+// ===== ATTRACT MODE =====
+const ATTRACT_TITLE_DURATION=480; // ~8 seconds on title at 60fps
+const ATTRACT_DEMO_DURATION=900;  // ~15 seconds of demo
+
 function initGame(){
     const lvl=generateLevel(1);
     G={run:false,over:false,win:false,
@@ -296,6 +300,7 @@ function initGame(){
        px:40,py:554,pvx:0,pvy:0,pdir:1,onGround:false,climbing:false,
        pw:30,ph:54,shotCooldown:0,invincible:0,
        hasKey:false,
+       debugInvincible:false,
        // Level
        ...lvl,
        // Enemies
@@ -319,8 +324,83 @@ function initGame(){
        particles:[],
        // Keys
        keys:{},
+       // Attract mode
+       attractMode:false,
+       attractTimer:ATTRACT_TITLE_DURATION,
+       attractPhase:'title',
+       attractDemoTimer:0,
+       attractFrameCount:0,
     };
     updUI();
+}
+
+function startAttractDemo(){
+    G.attractPhase='demo';
+    G.attractDemoTimer=ATTRACT_DEMO_DURATION;
+    G.attractMode=true;
+    G.attractFrameCount=0;
+    // Set up level 1 for demo play
+    const lvl=generateLevel(1);
+    G.run=true;G.over=false;G.win=false;
+    G.score=0;G.level=1;G.lives=3;G.extraLifeAt=10000;
+    G.px=40;G.py=554;G.pvx=0;G.pvy=0;G.pdir=1;G.onGround=false;G.climbing=false;
+    G.shotCooldown=0;G.invincible=0;G.hasKey=false;
+    G.debugInvincible=true; // invincible, no flashing
+    Object.assign(G,lvl);
+    G.spheres=[];G.dwarves=[];G.gravers=[];G.hearse=null;G.shots=[];G.particles=[];
+    G.sphereTimer=0;G.dwarfTimer=0;G.graverTimer=0;G.hearseTimer=0;
+    G.sphereInterval=180;G.dwarfInterval=300;G.graverInterval=120;G.hearseInterval=600;
+    G.tallManAnim=0;G.levelAnnounce=0;G.levelSoundPlayed=true; // skip announce
+    G.deathPause=0;G.pendingGameOver=false;G.rescuePause=0;
+    G.coffins=[];G.furnaces=[];G.levers=[];G.isCrematorium=false;
+    G.keys={};
+    SS.classList.add('hidden');
+    updUI();
+}
+
+function endAttractDemo(){
+    G.attractPhase='title';
+    G.attractTimer=ATTRACT_TITLE_DURATION;
+    G.attractMode=false;
+    G.debugInvincible=false;
+    G.run=false;G.over=false;
+    stopM();
+    initGame();
+    SS.classList.remove('hidden');
+}
+
+function attractAI(){
+    // Simple AI: chase nearest enemy, fire periodically, dodge spheres
+    let targetX=W/2;
+    let nearestDist=Infinity;
+    // Chase nearest sphere
+    for(const s of G.spheres){
+        const d=Math.abs(s.x-(G.px+G.pw/2));
+        if(d<nearestDist){nearestDist=d;targetX=s.x;}
+    }
+    // Chase nearest dwarf if closer
+    for(const d of G.dwarves){
+        const dist=Math.abs((d.x+d.w/2)-(G.px+G.pw/2));
+        if(dist<nearestDist){nearestDist=dist;targetX=d.x+d.w/2;}
+    }
+    // Dodge: if a sphere is close and heading toward us, shift away
+    for(const s of G.spheres){
+        if(s.y>G.py-80&&s.y<G.py+20&&Math.abs(s.x-(G.px+G.pw/2))<50){
+            targetX=s.x<G.px+G.pw/2?G.px+G.pw/2+60:G.px+G.pw/2-60;
+            break;
+        }
+    }
+    targetX=Math.max(G.pw/2,Math.min(W-G.pw/2,targetX));
+    const dx=targetX-(G.px+G.pw/2);
+    G.keys.left=dx<-8;
+    G.keys.right=dx>8;
+    G.keys.shoot=(G.attractFrameCount%18===0);
+    G.keys.jump=false;G.keys.up=false;G.keys.down=false;
+    G.attractFrameCount++;
+}
+
+function checkAttractBreak(){
+    return G._realKeyPressed||G._realTouchPressed;
 }
 
 function nextLevel(){
@@ -634,7 +714,7 @@ function update(){
         // Remove when fully off-screen
         if(s.x<-30||s.x>W+30||s.y<-30||s.y>H+30){G.spheres.splice(i,1);continue;}
         // Hit player
-        if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:s.x-16,y:s.y-16,w:32,h:32})){
+        if(G.invincible<=0&&!G.debugInvincible&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:s.x-16,y:s.y-16,w:32,h:32})){
             G.spheres.splice(i,1);loseLife();
         }
     }
@@ -706,7 +786,7 @@ function update(){
         // Off screen
         if(d.y>H){G.dwarves.splice(i,1);continue;}
         // Hit player
-        if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:d.x,y:d.y,w:d.w,h:d.h})){
+        if(G.invincible<=0&&!G.debugInvincible&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:d.x,y:d.y,w:d.w,h:d.h})){
             G.dwarves.splice(i,1);loseLife();
         }
     }
@@ -724,7 +804,7 @@ function update(){
         if(gv.dir>0&&gv.x>W+30){G.gravers.splice(i,1);continue;}
         if(gv.dir<0&&gv.x<-30-gv.w){G.gravers.splice(i,1);continue;}
         // Hit player
-        if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:gv.x,y:gv.y,w:gv.w,h:gv.h})){
+        if(G.invincible<=0&&!G.debugInvincible&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:gv.x,y:gv.y,w:gv.w,h:gv.h})){
             G.gravers.splice(i,1);loseLife();
         }
     }
@@ -734,7 +814,7 @@ function update(){
         const hr=G.hearse;
         hr.x+=hr.speed*dt;
         if(hr.x<-220||hr.x>W+220){G.hearse=null;}
-        else if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:hr.x,y:hr.y,w:hr.w,h:hr.h})){
+        else if(G.invincible<=0&&!G.debugInvincible&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:hr.x,y:hr.y,w:hr.w,h:hr.h})){
             G.hearse=null;loseLife();
         }
     }
@@ -782,7 +862,7 @@ function update(){
             }
         }
         // Furnace collision — Reggie loses a life if touching a furnace
-        if(G.invincible<=0&&G.furnaces){
+        if(G.invincible<=0&&!G.debugInvincible&&G.furnaces){
             for(const f of G.furnaces){
                 let fx,fy,fw,fh;
                 if(f.isMain){fx=W/2-50;fy=f.y-80;fw=100;fh=80;}
@@ -820,7 +900,7 @@ function update(){
     }
 
     // === Tall Man kills on touch ===
-    if(G.invincible<=0&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:G.tallManX-18,y:G.tallManY-10,w:36,h:50})){
+    if(G.invincible<=0&&!G.debugInvincible&&boxCollide({x:G.px,y:G.py,w:G.pw,h:G.ph},{x:G.tallManX-18,y:G.tallManY-10,w:36,h:50})){
         loseLife();
     }
 
@@ -963,6 +1043,16 @@ function draw(){
     drawHUD();
     drawRescue();
     drawGameOver();
+    // Attract mode overlay — "CLICK OR TAP TO START" flashing, no dark bar
+    if(G.attractMode){
+        const t=(Date.now()%1000)/1000;
+        const alpha=0.2+0.8*(0.5+0.5*Math.cos(t*Math.PI*2)); // smooth 1s pulse matching CSS
+        X.globalAlpha=alpha;
+        X.fillStyle='#8b1a1a';X.font='bold 18px Arial';X.textAlign='center';
+        X.fillText('CLICK OR TAP TO START',W/2,H-30);
+        X.textAlign='left';
+        X.globalAlpha=1;
+    }
 }
 
 function drawMausoleum(){
@@ -1595,7 +1685,7 @@ function drawShots(){
 }
 
 function drawPlayer(){
-    if(G.invincible>0&&Math.floor(G.invincible/4)%2===0)return; // blink
+    if(G.invincible>0&&!G.debugInvincible&&Math.floor(G.invincible/4)%2===0)return; // blink
     const animFrame=Math.floor(Date.now()/150)%2;
     if(G.climbing&&img.reggieClimb){
         const climbFrame=Math.floor(Date.now()/200)%2;
@@ -1758,6 +1848,7 @@ function drawGameOver(){
 <script>
 // ===== INPUT =====
 function mInput(action){
+    if(G.attractMode){G._realTouchPressed=true;return;}
     if(!G.run||G.over)return;
     if(action==='left')G.keys.left=true;
     if(action==='right')G.keys.right=true;
@@ -1768,6 +1859,8 @@ function mInput(action){
 }
 
 document.addEventListener('keydown',e=>{
+    // Track real input for attract mode break detection
+    if(G.attractMode){G._realKeyPressed=true;return;}
     if(e.key==='ArrowLeft')G.keys.left=true;
     if(e.key==='ArrowRight')G.keys.right=true;
     if(e.key==='ArrowUp')G.keys.up=true;
@@ -1792,6 +1885,7 @@ document.addEventListener('keyup',e=>{
 document.querySelectorAll('#dpad button').forEach(btn=>{
     const cls=btn.className;
     btn.addEventListener('touchstart',e=>{e.preventDefault();
+        if(G.attractMode){G._realTouchPressed=true;return;}
         if(cls.includes('up'))G.keys.up=true;
         if(cls.includes('down'))G.keys.down=true;
         if(cls.includes('left'))G.keys.left=true;
@@ -1811,6 +1905,7 @@ document.querySelectorAll('#dpad button').forEach(btn=>{
 document.querySelectorAll('#action-btns button').forEach(btn=>{
     const isJump=btn.classList.contains('jump-btn');
     btn.addEventListener('touchstart',e=>{e.preventDefault();
+        if(G.attractMode){G._realTouchPressed=true;return;}
         if(isJump)G.keys.jump=true; else G.keys.shoot=true;
     },{passive:false});
     const release=e=>{e.preventDefault();
@@ -1836,15 +1931,38 @@ function gameLoop(timestamp){
         dt=Math.min(elapsed/16.667,3); // 60fps baseline, cap at 3x to prevent huge jumps
     }
     lastTime=timestamp;
+    // Attract mode: tick timer on title screen, run AI during demo
+    if(!G.run&&!G.over&&!G.attractMode){
+        // Title screen — count down to demo
+        G.attractTimer-=dt;
+        if(G.attractTimer<=0){startAttractDemo();}
+    }
+    if(G.attractMode){
+        // Check for real input to break attract
+        if(checkAttractBreak()){G._realKeyPressed=false;G._realTouchPressed=false;endAttractDemo();}
+        else{
+            G._realKeyPressed=false;G._realTouchPressed=false;
+            G.attractDemoTimer-=dt;
+            if(G.attractDemoTimer<=0){endAttractDemo();}
+            else{attractAI();}
+        }
+    }
     update();draw();requestAnimationFrame(gameLoop);
 }
 const SS=document.getElementById('start-screen');
-function go(){if(!G.run&&!G.over){G.run=true;G.keys={};SS.classList.add('hidden');startM();
-    if('ontouchstart' in window)document.getElementById('controls').style.display='block';}}
+function go(){
+    if(G.attractMode){endAttractDemo();}
+    if(!G.run&&!G.over){G.attractMode=false;G.debugInvincible=false;G.run=true;G.keys={};SS.classList.add('hidden');startM();
+    if('ontouchstart' in window)document.getElementById('controls').style.display='block';}
+}
 SS.addEventListener('click',go);
 SS.addEventListener('touchstart',e=>{e.preventDefault();go();},{passive:false});
-C.addEventListener('click',()=>{if(G.over){initGame();G.run=true;G.keys={};SS.classList.add('hidden');startM();}});
+C.addEventListener('click',()=>{
+    if(G.attractMode){endAttractDemo();go();return;}
+    if(G.over){initGame();G.run=true;G.keys={};SS.classList.add('hidden');startM();}
+});
 C.addEventListener('touchstart',e=>{e.preventDefault();
+    if(G.attractMode){endAttractDemo();go();return;}
     if(G.over){initGame();G.run=true;G.keys={};SS.classList.add('hidden');startM();}
 },{passive:false});
 
